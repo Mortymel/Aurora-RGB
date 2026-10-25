@@ -19,15 +19,14 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install PlatformIO and esptool
-        run: python -m pip install platformio esptool
+        run: python -m pip install platformio 'esptool>=5,<6'
       - name: Compile ESP32-WROOM-32 firmware
         run: pio run -d firmware
       - name: Merge flash image for browser installer
         run: |
-          python -m esptool --chip esp32 merge_bin -o web-flasher/firmware.bin --flash_mode dio --flash_freq 40m --flash_size 4MB \
+          python -m esptool --chip esp32 merge-bin -o web-flasher/firmware.bin --flash-mode dio --flash-freq 40m --flash-size 4MB \
             0x1000 firmware/.pio/build/esp32dev/bootloader.bin \
             0x8000 firmware/.pio/build/esp32dev/partitions.bin \
-            0xe000 firmware/.pio/build/esp32dev/boot_app0.bin \
             0x10000 firmware/.pio/build/esp32dev/firmware.bin
       - name: Upload firmware and web installer
         uses: actions/upload-artifact@v4
