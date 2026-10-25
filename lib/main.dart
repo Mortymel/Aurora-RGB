@@ -24,7 +24,7 @@ void main(){WidgetsFlutterBinding.ensureInitialized();runApp(const StudioApp());
 class StudioApp extends StatelessWidget {
   const StudioApp({super.key});
   @override Widget build(BuildContext context)=>MaterialApp(
-    title:"mosty's led",debugShowCheckedModeBanner:false,
+    title:"Morty's LED",debugShowCheckedModeBanner:false,
     theme:ThemeData(useMaterial3:true,brightness:Brightness.dark,scaffoldBackgroundColor:ink,
       colorScheme:ColorScheme.fromSeed(seedColor:violet,brightness:Brightness.dark),
       cardTheme:const CardThemeData(color:panel,margin:EdgeInsets.symmetric(vertical:7)),
@@ -34,7 +34,7 @@ class StudioApp extends StatelessWidget {
 class StudioShell extends StatefulWidget {const StudioShell({super.key});@override State<StudioShell> createState()=>_StudioShellState();}
 class _StudioShellState extends State<StudioShell>{
   int page=0;
-  String host='192.168.4.1',deviceName='Mi tira RGB',message='Sin conectar';
+  String host='192.168.4.1',deviceName='Controlador LED',message='Sin conectar';
   DeviceApi? api;
   LedState? state;
   Timer? poll,nightTimer;
@@ -43,6 +43,8 @@ class _StudioShellState extends State<StudioShell>{
   List<StudioDevice> devices=[];
   String? selectedId;
   bool polling=false;
+  int connectionGeneration=0;
+  int devicePage=0;
   bool busy=false;
   @override void initState(){super.initState();_load();}
   Future<void> _load() async{
@@ -53,31 +55,35 @@ class _StudioShellState extends State<StudioShell>{
     if(devices.isNotEmpty){final active=devices.where((d)=>d.id==selectedId).toList();final d=active.isEmpty?devices.first:active.first;host=d.host;deviceName=d.name;selectedId=d.id;}
     if(devices.isEmpty){host=p.getString('device_host')??host;deviceName=p.getString('device_name')??deviceName;}
     if(mounted)setState((){});
-    if(devices.isNotEmpty)await connect();
+    if(devices.isNotEmpty){devicePage=devices.indexWhere((d)=>d.id==selectedId);if(devicePage<0)devicePage=0;await connect();}
   }
   Future<void> connect() async{
-    poll?.cancel();if(busy)return;setState((){busy=true;message='Conectando…';});
+    poll?.cancel();
+    final generation=++connectionGeneration;
+    final target=host.trim();
+    setState((){busy=true;message='Conectando…';});
     try{
-      final a=DeviceApi(host.trim());
+      final a=DeviceApi(target);
       final s=await a.getState();
       final p=await SharedPreferences.getInstance();await p.setString('device_host',host.trim());
-      if(!mounted)return;
+      if(!mounted||generation!=connectionGeneration)return;
       setState((){api=a;state=s;message='Conectado';});
       poll=Timer.periodic(const Duration(seconds:4),(_)=>refresh());
-    }catch(e){if(mounted)setState((){api=null;state=null;message='Sin conexión';});}
-    finally{if(mounted)setState(()=>busy=false);}
+    }catch(e){if(mounted&&generation==connectionGeneration)setState((){api=null;state=null;message='Sin conexión';});}
+    finally{if(mounted&&generation==connectionGeneration)setState(()=>busy=false);}
   }
   Future<void> refresh()async{
     if(polling||busy||api==null)return;
     polling=true;
-    try{final s=await api?.getState();if(mounted&&s!=null)setState((){state=s;message='Conectado';});}
-    catch(_){if(mounted)setState(()=>message='Sin respuesta');}
+    final current=api;
+    try{final s=await current?.getState();if(mounted&&s!=null&&identical(current,api))setState((){state=s;message='Conectado';});}
+    catch(_){if(mounted&&identical(current,api))setState(()=>message='Sin respuesta');}
     finally{polling=false;}
   }
   void notice(String text){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(text)));}
   Future<void> send(Map<String,String> fields)async{
     final a=api;if(a==null){notice('Conecta una ESP32 para aplicar cambios');return;}
-    try{final s=await a.control(fields);if(mounted)setState(()=>state=s);}
+    try{final s=await a.control(fields);if(mounted&&identical(a,api))setState(()=>state=s);}
     catch(e){notice('No se pudo enviar el comando: $e');}
   }
   Future<void> apply(StudioScene s)async{
@@ -126,6 +132,7 @@ class _StudioShellState extends State<StudioShell>{
         setState((){
           devices=[for(final d in devices)if(d.id!=id)d,device];
           selectedId=id;host=device.host;deviceName=device.name;api=null;state=null;message='Sin conectar';
+          devicePage=devices.indexWhere((d)=>d.id==id);
         });
         await DeviceStore.save(devices);await DeviceStore.select(id);
         await connect();
@@ -134,8 +141,9 @@ class _StudioShellState extends State<StudioShell>{
     ip.dispose();name.dispose();
   }
   Future<void> selectDevice(StudioDevice d)async{
-    if(busy)return;
-    setState((){selectedId=d.id;host=d.host;deviceName=d.name;api=null;state=null;message='Sin conectar';});
+    if(selectedId==d.id&&api!=null)return;
+    setState((){selectedId=d.id;host=d.host;deviceName=d.name;api=null;state=null;message='Sin conectar';
+      devicePage=devices.indexWhere((x)=>x.id==d.id);});
     await DeviceStore.select(d.id);await connect();
   }
   Future<void> removeDevice(StudioDevice d)async{
@@ -147,7 +155,7 @@ class _StudioShellState extends State<StudioShell>{
     if(ok!=true)return;
     setState((){
       devices=devices.where((x)=>x.id!=d.id).toList();
-      if(selectedId==d.id){poll?.cancel();api=null;state=null;message='Sin conectar';selectedId=null;}
+      if(selectedId==d.id){connectionGeneration++;poll?.cancel();api=null;state=null;message='Sin conectar';selectedId=null;}
     });
     await DeviceStore.save(devices);
     if(devices.isNotEmpty&&selectedId==null){await selectDevice(devices.first);}
@@ -195,7 +203,7 @@ class _StudioShellState extends State<StudioShell>{
     if(trailing!=null)trailing]));
   Widget card(Widget child)=>Card(child:Padding(padding:const EdgeInsets.all(17),child:child));
   Widget header()=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    const Text("MOSTY'S LED",style:TextStyle(color:violet,letterSpacing:3,fontSize:12,fontWeight:FontWeight.bold)),
+    const Text("MORTY'S LED",style:TextStyle(color:violet,letterSpacing:3,fontSize:12,fontWeight:FontWeight.bold)),
     const SizedBox(height:5),
     Row(children:[Expanded(child:Text(['Iluminación','Escenas','Efectos','Dispositivos'][page],style:const TextStyle(fontSize:29,fontWeight:FontWeight.w800))),
       IconButton(onPressed:()=>setState(()=>page=3),tooltip:'Controladores',icon:const Icon(Icons.tune_rounded))]),
@@ -208,29 +216,69 @@ class _StudioShellState extends State<StudioShell>{
         color:(s?.power??false)?HSVColor.fromAHSV(1,(i*360/24+(s?.effect??0)*20)%360,0.95,0.95).toColor():Colors.white12,
         borderRadius:BorderRadius.circular(5),boxShadow:(s?.power??false)?[BoxShadow(color:Color(s?.color??0xFF8C65E5).withValues(alpha:0.5),blurRadius:11)]:null)))))),
       Positioned(left:18,bottom:15,child:Text('${s?.pixels??320} PÍXELES  ·  VISTA ILUSTRATIVA',style:const TextStyle(fontSize:10,letterSpacing:1.2,color:Colors.white70)))]));
+  Widget deviceCarousel(){
+    if(devices.isEmpty)return card(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      const Text('Tus luces',style:TextStyle(fontSize:19,fontWeight:FontWeight.w600)),
+      const SizedBox(height:8),const Text('Añade tu primera tira.',style:TextStyle(color:Colors.white60)),
+      const SizedBox(height:12),
+      FilledButton.icon(onPressed:()=>editDevice(),icon:const Icon(Icons.add),label:const Text('Añadir tira')),
+    ]));
+    final currentIndex=devices.indexWhere((d)=>d.id==selectedId);
+    return Column(children:[
+      SizedBox(height:290,child:PageView.builder(
+        key:ValueKey('led-cards-${devices.map((d)=>d.id).join('-')}'),
+        controller:PageController(initialPage:currentIndex<0?0:currentIndex,viewportFraction:0.96),
+        itemCount:devices.length,
+        onPageChanged:(i){if(i>=0&&i<devices.length){devicePage=i;selectDevice(devices[i]);}},
+        itemBuilder:(context,i){
+          final d=devices[i],active=d.id==selectedId;
+          final current=active?state:null;
+          return Padding(padding:const EdgeInsets.only(right:8),child:Card(
+            child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+              Row(children:[
+                Icon(Icons.lightbulb_outline,color:active?violet:Colors.white54),
+                const SizedBox(width:10),
+                Expanded(child:Text(d.name,maxLines:1,overflow:TextOverflow.ellipsis,
+                  style:const TextStyle(fontSize:19,fontWeight:FontWeight.w600))),
+                IconButton(tooltip:'Cambiar nombre',onPressed:()=>editDevice(existing:d),icon:const Icon(Icons.edit_outlined,size:20)),
+              ]),
+              Text(active?message:d.host,style:const TextStyle(color:Colors.white60,fontSize:12)),
+              const SizedBox(height:12),
+              Expanded(child:Container(decoration:BoxDecoration(
+                color:current?.power==true?Color(current!.color).withValues(alpha:0.28):const Color(0xFF272B32),
+                borderRadius:BorderRadius.circular(16)),
+                child:Center(child:Icon(Icons.lightbulb,color:current?.power==true?Color(current!.color):Colors.white24,size:60)))),
+              const SizedBox(height:8),
+              Row(children:[
+                Expanded(child:Text(current==null?'Sin conexión':'Brillo ${(current.brightness*100/255).round()}%',
+                  style:const TextStyle(color:Colors.white70))),
+                Switch(value:current?.power??false,onChanged:current==null?null:(v)=>send({'power':'$v'})),
+              ]),
+            ]))));
+        },
+      )),
+      if(devices.length>1)Padding(padding:const EdgeInsets.only(top:8),child:Row(
+        mainAxisAlignment:MainAxisAlignment.center,children:List.generate(devices.length,(i)=>Container(
+          width:i==devicePage?18:6,height:6,margin:const EdgeInsets.symmetric(horizontal:3),
+          decoration:BoxDecoration(color:i==devicePage?violet:Colors.white24,borderRadius:BorderRadius.circular(5)))))),
+      TextButton.icon(onPressed:()=>setState(()=>page=3),icon:const Icon(Icons.devices_other),label:const Text('Gestionar dispositivos')),
+    ]);
+  }
   Widget homePage(){
     final s=state;
     return Column(children:[
-      card(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Row(children:[Container(width:9,height:9,decoration:BoxDecoration(shape:BoxShape.circle,color:message=='Conectado'?Colors.greenAccent:Colors.orangeAccent)),
-          const SizedBox(width:9),Expanded(child:Text(deviceName,style:const TextStyle(fontWeight:FontWeight.w700,fontSize:17))),
-          Text(message,style:const TextStyle(fontSize:12,color:Colors.white60))]),
-        const SizedBox(height:14),preview(s),
-        const SizedBox(height:10),
-        Row(children:[Expanded(child:Text(s==null?'Conecta tu controlador':'Control principal',style:const TextStyle(color:Colors.white70))),
-          Switch(value:s?.power??false,onChanged:s==null?null:(v)=>send({'power':'$v'}))]),
-        if(s==null)FilledButton.icon(onPressed:()=>setState(()=>page=3),icon:const Icon(Icons.wifi),label:const Text('Conectar dispositivo')),
-        if(s!=null)...[
-          Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[const Text('Brillo'),Text('${(s.brightness*100/255).round()}%')]),
-          Slider(value:s.brightness.toDouble().clamp(0,255),max:255,divisions:255,
-            onChanged:(v)=>setState(()=>state=LedState(power:s.power,brightness:v.round(),effect:s.effect,speed:s.speed,color:s.color,pixels:s.pixels,audioLevel:s.audioLevel,wifi:s.wifi)),
-            onChangeEnd:(v)=>send({'brightness':'${v.round()}'})),
-        ]],
-      )),
-      section('Colores rápidos'),
+      deviceCarousel(),
+      if(s!=null)card(Column(children:[
+        Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[
+          const Text('Brillo'),Text('${(s.brightness*100/255).round()}%')]),
+        Slider(value:s.brightness.toDouble().clamp(0,255),max:255,divisions:255,
+          onChanged:(v)=>setState(()=>state=LedState(power:s.power,brightness:v.round(),effect:s.effect,speed:s.speed,color:s.color,pixels:s.pixels,audioLevel:s.audioLevel,wifi:s.wifi)),
+          onChangeEnd:(v)=>send({'brightness':'${v.round()}'})),
+      ])),
+      section('Colores'),
       card(Wrap(spacing:13,runSpacing:13,children:colors.map((c)=>InkWell(onTap:()=>send({'power':'true','color':'0x${(c&0xFFFFFF).toRadixString(16).padLeft(6,'0')}','effect':'0'}),
         child:Container(width:43,height:43,decoration:BoxDecoration(color:Color(c),shape:BoxShape.circle,border:Border.all(color:Colors.white24,width:2))))).toList())),
-      section('Ambientes destacados',trailing:TextButton(onPressed:()=>setState(()=>page=1),child:const Text('Ver todos'))),
+      section('Escenas',trailing:TextButton(onPressed:()=>setState(()=>page=1),child:const Text('Ver todas'))),
       SizedBox(height:130,child:ListView(scrollDirection:Axis.horizontal,children:builtInScenes.take(4).map((e)=>sceneTile(e)).toList())),
       section('Accesos rápidos'),
       card(Row(children:[Expanded(child:OutlinedButton.icon(onPressed:()=>startNightlight(30),icon:const Icon(Icons.bedtime_outlined),label:const Text('Apagar en 30m'))),
@@ -298,7 +346,7 @@ class _StudioShellState extends State<StudioShell>{
     mqttPage(),
     section('Acerca de'),
     card(const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Text("mosty's led · prototipo 0.3",style:TextStyle(fontWeight:FontWeight.bold)),
+      Text("Morty's LED · prototipo 0.3",style:TextStyle(fontWeight:FontWeight.bold)),
       SizedBox(height:8),Text('Control WiFi local. Sin nube ni cuenta. Escenas almacenadas localmente.',style:TextStyle(color:Colors.white70)),
       SizedBox(height:8),Text('BLE WiFi, música, segmentos, horarios persistentes y MQTT requieren firmware y desarrollo adicional.',style:TextStyle(color:Colors.amberAccent,fontSize:12)),
     ])),
