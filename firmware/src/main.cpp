@@ -18,10 +18,14 @@
 #ifndef LED_MAX_MILLIAMPS
 #define LED_MAX_MILLIAMPS 3000
 #endif
-#define FW_VERSION "0.2.0-dev"
+#ifndef LED_MAX_PIXELS
+#define LED_MAX_PIXELS 1024
+#endif
+#define FW_VERSION "0.2.1-dev"
 #define API_VERSION 1
 
-CRGB leds[LED_COUNT];
+CRGB leds[LED_MAX_PIXELS];
+uint16_t pixelCount=LED_COUNT;
 WebServer server(80);
 Preferences prefs;
 WiFiClient wifiClient;
@@ -43,7 +47,7 @@ void writeState(JsonDocument &doc) {
   doc["effect"] = effect;
   doc["speed"] = speed;
   doc["color"] = colorValue;
-  doc["pixels"] = LED_COUNT;
+  doc["pixels"] = pixelCount;
   doc["audioLevel"] = 0;
   doc["wifi"] = WiFi.status() == WL_CONNECTED ? "connected" : "ap";
 }
@@ -76,6 +80,7 @@ void persist() {
   prefs.putUChar("speed",speed);
   prefs.putUChar("effect",effect);
   prefs.putUInt("color",colorValue);
+  prefs.putUShort("pixels",pixelCount);
 }
 int effectIndex(const String &name) {
   for (int i=0;i<EFFECT_COUNT;i++) if (name.equalsIgnoreCase(effectNames[i])) return i;
@@ -84,6 +89,7 @@ int effectIndex(const String &name) {
 void applyControl(JsonVariantConst data) {
   if (data["power"].is<bool>()) powerOn = data["power"].as<bool>();
   if (data["state"].is<const char*>()) powerOn = String(data["state"].as<const char*>()).equalsIgnoreCase("ON");
+  if (data["pixels"].is<int>()) pixelCount = constrain(data["pixels"].as<int>(),1,LED_MAX_PIXELS);
   if (data["brightness"].is<int>()) brightness = constrain(data["brightness"].as<int>(),0,255);
   if (data["speed"].is<int>()) speed = constrain(data["speed"].as<int>(),1,255);
   if (data["effect"].is<int>()) effect = constrain(data["effect"].as<int>(),0,EFFECT_COUNT-1);
@@ -122,7 +128,8 @@ void handleInfo() {
   doc["name"]=deviceName;
   doc["firmware_version"]=FW_VERSION;
   doc["api_version"]=API_VERSION;
-  doc["pixels"]=LED_COUNT;
+  doc["pixels"]=pixelCount;
+  doc["max_pixels"]=LED_MAX_PIXELS;
   doc["led_chip"]="XGB1338";
   doc["led_protocol"]="WS2812B-compatible";
   doc["color_order"]="GRB";
@@ -191,21 +198,22 @@ void mqttLoop() {
 }
 void render() {
   if(!powerOn||brightness==0){FastLED.clear();FastLED.show();return;}
+  fill_solid(leds+pixelCount,LED_MAX_PIXELS-pixelCount,CRGB::Black);
   CRGB base((colorValue>>16)&255,(colorValue>>8)&255,colorValue&255);
   uint8_t t=phase&255;
   switch(effect){
-    case 0: fill_solid(leds,LED_COUNT,base);break;
-    case 1: fill_rainbow(leds,LED_COUNT,t,255/max(1,LED_COUNT/4));break;
-    case 2: fill_solid(leds,LED_COUNT,base);nscale8_video(leds,LED_COUNT,beatsin8(12,15,255));break;
-    case 3: fadeToBlackBy(leds,LED_COUNT,55);leds[phase%LED_COUNT]=base;break;
-    case 4: fadeToBlackBy(leds,LED_COUNT,38);if(random8()<95)leds[random16(LED_COUNT)]=base;break;
-    case 5: for(int i=0;i<LED_COUNT;i++)leds[i]=HeatColor(qsub8(inoise8(i*27,phase*15),40));break;
-    case 6: for(int i=0;i<LED_COUNT;i++)leds[i]=base;for(int i=0;i<LED_COUNT;i++)leds[i].nscale8_video(sin8(i*6+phase));break;
-    case 7: fill_solid(leds,LED_COUNT,CRGB::Black);for(int i=0;i<LED_COUNT;i++)if(i<=phase%LED_COUNT)leds[i]=base;break;
-    case 8: fill_solid(leds,LED_COUNT,base);nscale8_video(leds,LED_COUNT,quadwave8(t));break;
-    case 9: fadeToBlackBy(leds,LED_COUNT,20);if(random8()<75)leds[random16(LED_COUNT)]=CHSV(random8(),200,255);break;
-    case 10: fadeToBlackBy(leds,LED_COUNT,40);for(int j=0;j<8;j++)leds[(phase+j)%LED_COUNT]=base;break;
-    case 11: fill_gradient_RGB(leds,LED_COUNT,base,CHSV(t,255,255));break;
+    case 0: fill_solid(leds,pixelCount,base);break;
+    case 1: fill_rainbow(leds,pixelCount,t,255/max(1,(int)pixelCount/4));break;
+    case 2: fill_solid(leds,pixelCount,base);nscale8_video(leds,pixelCount,beatsin8(12,15,255));break;
+    case 3: fadeToBlackBy(leds,pixelCount,55);leds[phase%pixelCount]=base;break;
+    case 4: fadeToBlackBy(leds,pixelCount,38);if(random8()<95)leds[random16(pixelCount)]=base;break;
+    case 5: for(int i=0;i<pixelCount;i++)leds[i]=HeatColor(qsub8(inoise8(i*27,phase*15),40));break;
+    case 6: for(int i=0;i<pixelCount;i++)leds[i]=base;for(int i=0;i<pixelCount;i++)leds[i].nscale8_video(sin8(i*6+phase));break;
+    case 7: fill_solid(leds,pixelCount,CRGB::Black);for(int i=0;i<pixelCount;i++)if(i<=phase%pixelCount)leds[i]=base;break;
+    case 8: fill_solid(leds,pixelCount,base);nscale8_video(leds,pixelCount,quadwave8(t));break;
+    case 9: fadeToBlackBy(leds,pixelCount,20);if(random8()<75)leds[random16(pixelCount)]=CHSV(random8(),200,255);break;
+    case 10: fadeToBlackBy(leds,pixelCount,40);for(int j=0;j<8;j++)leds[(phase+j)%LED_COUNT]=base;break;
+    case 11: fill_gradient_RGB(leds,pixelCount,base,CHSV(t,255,255));break;
   }
   FastLED.setBrightness(brightness);
   FastLED.show();
@@ -218,6 +226,7 @@ void setup() {
   speed=prefs.getUChar("speed",100);
   effect=constrain(prefs.getUChar("effect",0),0,EFFECT_COUNT-1);
   colorValue=prefs.getUInt("color",0x83D9BC);
+  pixelCount=constrain(prefs.getUShort("pixels",LED_COUNT),1,LED_MAX_PIXELS);
   deviceId=String((uint32_t)(ESP.getEfuseMac()&0xFFFFFF),HEX);
   deviceName=prefs.getString("name","Morty's LED");
   mqttBase="mortys-led/"+deviceId;
@@ -225,7 +234,7 @@ void setup() {
   mqttUser=prefs.getString("mqtt_user","");
   mqttPass=prefs.getString("mqtt_pass","");
   mqttPort=prefs.getUShort("mqtt_port",1883);
-  FastLED.addLeds<WS2812B,LED_PIN,GRB>(leds,LED_COUNT);
+  FastLED.addLeds<WS2812B,LED_PIN,GRB>(leds,LED_MAX_PIXELS);
   FastLED.setMaxPowerInVoltsAndMilliamps(5,LED_MAX_MILLIAMPS);
   FastLED.clear(true);
   WiFi.mode(WIFI_STA);
