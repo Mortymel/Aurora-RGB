@@ -10,7 +10,7 @@ const ink=Color(0xFF101216);
 const panel=Color(0xFF1D2026);
 const violet=Color(0xFF83D9BC);
 const colors=<int>[0xFFFF5277,0xFFFFAD4D,0xFFFFE66B,0xFF49E6A1,0xFF39C9F7,0xFF736BFF,0xFFB87BFF,0xFFFF77D1,0xFFFFFFFF];
-const effectNames=<String>['Color sólido','Arcoíris','Fuego','Chispas','Respiración','Olas'];
+const effectNames=<String>['Fijo','Arcoíris','Respirar','Cometa','Chispas','Fuego','Olas','Barrido','Pulso','Confeti','Meteoros','Gradiente'];
 const builtInScenes=<StudioScene>[
   StudioScene('Atardecer',0xFF914D,175,0,90),
   StudioScene('Océano',0x18B7FF,195,0,100),
@@ -206,7 +206,7 @@ class _StudioShellState extends State<StudioShell>{
     const Text("MORTY'S LED",style:TextStyle(color:violet,letterSpacing:3,fontSize:12,fontWeight:FontWeight.bold)),
     const SizedBox(height:5),
     Row(children:[Expanded(child:Text(['Iluminación','Escenas','Efectos','Dispositivos'][page],style:const TextStyle(fontSize:29,fontWeight:FontWeight.w800))),
-      IconButton(onPressed:()=>setState(()=>page=3),tooltip:'Controladores',icon:const Icon(Icons.tune_rounded))]),
+      const SizedBox.shrink()]),
   ]);
   Widget preview(LedState? s)=>Container(height:150,decoration:BoxDecoration(borderRadius:BorderRadius.circular(22),
     gradient:LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[
@@ -311,7 +311,7 @@ class _StudioShellState extends State<StudioShell>{
       const Text('Los efectos disponibles dependen del firmware instalado.',style:TextStyle(color:Colors.white60)),
       section('Efectos dinámicos'),
       ...List.generate(effectNames.length,(i)=>Card(child:ListTile(
-        leading:CircleAvatar(backgroundColor:Color(colors[i]).withValues(alpha:0.25),child:Icon([Icons.circle,Icons.gradient,Icons.local_fire_department,Icons.auto_awesome,Icons.blur_on,Icons.waves][i],color:Color(colors[i]))),
+        leading:CircleAvatar(backgroundColor:Color(colors[i%colors.length]).withValues(alpha:0.25),child:Icon([Icons.circle,Icons.gradient,Icons.local_fire_department,Icons.auto_awesome,Icons.blur_on,Icons.waves][i%6],color:Color(colors[i]))),
         title:Text(effectNames[i]),subtitle:Text(i==0?'Color constante':'Animación LED · modo $i'),
         trailing:Icon(s?.effect==i?Icons.check_circle:Icons.chevron_right,color:s?.effect==i?violet:Colors.white38),
         onTap:()=>send({'effect':'$i','power':'true'})))),
