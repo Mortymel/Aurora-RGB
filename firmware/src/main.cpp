@@ -7,7 +7,8 @@
 #include <PubSubClient.h>
 
 // Verify LED protocol, pixel grouping, data pin and power supply BEFORE connecting hardware.
-// Target: classic ESP32-WROOM-32 with a WS2812-compatible 5 V data strip.
+// Target: ESP32-WROOM-32 + BTF-LIGHTING XGB1338 RGBIC 5 V.
+// Initial WS2812B timing and GRB color order; verify with RGB test before full brightness.
 #ifndef LED_PIN
 #define LED_PIN 5
 #endif
@@ -17,7 +18,7 @@
 #ifndef LED_MAX_MILLIAMPS
 #define LED_MAX_MILLIAMPS 3000
 #endif
-#define FW_VERSION "0.1.0-dev"
+#define FW_VERSION "0.2.0-dev"
 #define API_VERSION 1
 
 CRGB leds[LED_COUNT];
@@ -122,6 +123,9 @@ void handleInfo() {
   doc["firmware_version"]=FW_VERSION;
   doc["api_version"]=API_VERSION;
   doc["pixels"]=LED_COUNT;
+  doc["led_chip"]="XGB1338";
+  doc["led_protocol"]="WS2812B-compatible";
+  doc["color_order"]="GRB";
   doc["ip"]=WiFi.localIP().toString();
   JsonArray caps=doc["capabilities"].to<JsonArray>();
   caps.add("power");caps.add("brightness");caps.add("rgb");caps.add("speed");caps.add("effects");caps.add("mqtt");
