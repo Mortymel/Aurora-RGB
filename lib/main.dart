@@ -130,7 +130,7 @@ class _StudioShellState extends State<StudioShell>{
     child:Stack(children:[Positioned(left:18,right:18,top:36,child:Row(children:List.generate(24,(i)=>Expanded(child:Container(
       height:20,margin:const EdgeInsets.symmetric(horizontal:1),decoration:BoxDecoration(
         color:(s?.power??false)?HSVColor.fromAHSV(1,(i*360/24+(s?.effect??0)*20)%360,0.95,0.95).toColor():Colors.white12,
-        borderRadius:BorderRadius.circular(5),boxShadow:(s?.power??false)?[BoxShadow(color:Color(s?.color??0xFF8C65E5).withValues(alpha:0.5),blurRadius:11)]:null))))),
+        borderRadius:BorderRadius.circular(5),boxShadow:(s?.power??false)?[BoxShadow(color:Color(s?.color??0xFF8C65E5).withValues(alpha:0.5),blurRadius:11)]:null)))))),
       Positioned(left:18,bottom:15,child:Text('${s?.pixels??320} PÍXELES  ·  VISTA ILUSTRATIVA',style:const TextStyle(fontSize:10,letterSpacing:1.2,color:Colors.white70)))]));
   Widget homePage(){
     final s=state;
@@ -150,7 +150,7 @@ class _StudioShellState extends State<StudioShell>{
             onChanged:(v)=>setState(()=>state=LedState(power:s.power,brightness:v.round(),effect:s.effect,speed:s.speed,color:s.color,pixels:s.pixels,audioLevel:s.audioLevel,wifi:s.wifi)),
             onChangeEnd:(v)=>send({'brightness':'${v.round()}'})),
         ]],
-      ])),
+      )),
       section('Colores rápidos'),
       card(Wrap(spacing:13,runSpacing:13,children:colors.map((c)=>InkWell(onTap:()=>send({'power':'true','color':'0x${(c&0xFFFFFF).toRadixString(16).padLeft(6,'0')}','effect':'0'}),
         child:Container(width:43,height:43,decoration:BoxDecoration(color:Color(c),shape:BoxShape.circle,border:Border.all(color:Colors.white24,width:2))))).toList())),
