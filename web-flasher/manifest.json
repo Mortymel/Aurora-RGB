@@ -1,0 +1,13 @@
+{
+  "name": "Morty's LED — ESP32-WROOM-32",
+  "version": "0.1.0-dev",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {"path": "firmware.bin", "offset": 0}
+      ]
+    }
+  ]
+}
