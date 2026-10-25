@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101216">
+<title>Morty's LED · Instalar firmware</title>
+<script type="module" src="https://unpkg.com/esp-web-tools@10.1.1/dist/web/install-button.js"></script>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#101216;color:#f4f5f7}
+*{box-sizing:border-box}body{margin:0;padding:32px 18px;min-height:100vh}
+main{max-width:680px;margin:32px auto}.brand{color:#83d9bc;font-weight:750;letter-spacing:.25em;font-size:12px}
+h1{font-size:clamp(32px,7vw,50px);letter-spacing:-.045em;margin:24px 0 12px}
+p{line-height:1.65;color:#aeb4bd}.panel{background:#1d2026;border:1px solid #333840;border-radius:22px;padding:26px;margin-top:26px}
+button{background:#83d9bc;color:#10261f;border:0;padding:16px 28px;border-radius:30px;font-size:16px;font-weight:700;cursor:pointer}
+small{color:#9fa7b0}.steps{padding-left:22px;line-height:2;color:#d6d9de}
+a{color:#83d9bc}.warning{border-left:3px solid #e6b667;padding-left:15px}
+</style>
+</head>
+<body><main>
+<div class="brand">MORTY'S LED</div>
+<h1>Instalar firmware</h1>
+<p>Conecta tu ESP32-WROOM-32 por USB para instalar el controlador de tus tiras LED. Diseñado para el mismo estilo de Morty's LED en Android.</p>
+<section class="panel">
+<h2>ESP32-WROOM-32</h2>
+<p>Firmware experimental · v0.1.0-dev · 12 efectos, brillo y velocidad, control WiFi local y MQTT opcional.</p>
+<esp-web-install-button manifest="./manifest.json">
+<button slot="activate">Conectar e instalar</button>
+<span slot="unsupported">Necesitas Chrome o Edge de escritorio con Web Serial.</span>
+<span slot="not-allowed">Abre esta página mediante HTTPS.</span>
+</esp-web-install-button>
+<p><small>La instalación puede borrar el firmware y la configuración existente.</small></p>
+</section>
+<section class="panel">
+<h2>Antes de empezar</h2>
+<ol class="steps">
+<li>Comprueba el modelo exacto de la ESP32 y el protocolo de la tira.</li>
+<li>Desconecta la tira LED durante el flasheo inicial.</li>
+<li>Conecta la placa con un cable USB de datos.</li>
+<li>Abre este instalador desde una web HTTPS con <code>firmware.bin</code> en la misma carpeta.</li>
+<li>Después, conecta al punto de acceso <code>MortysLED-XXXX</code> y abre <code>192.168.4.1/setup</code> para configurar WiFi.</li>
+</ol>
+<p class="warning">Prototipo de desarrollo: el punto de acceso inicial no tiene contraseña y el HTTP local no tiene autenticación. No utilizar en redes públicas ni en instalaciones críticas.</p>
+</section>
+<p><a href="https://github.com/Mortymel/ESP32-RGB-Studio-">Código y documentación del proyecto</a></p>
+</main></body></html>
