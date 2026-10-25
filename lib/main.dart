@@ -4,10 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'device_api.dart';
 import 'ble_provisioning.dart';
 import 'scene_store.dart';
+import 'device_store.dart';
 
-const ink=Color(0xFF0B0D19);
-const panel=Color(0xFF191D30);
-const violet=Color(0xFFAB8DFF);
+const ink=Color(0xFF101216);
+const panel=Color(0xFF1D2026);
+const violet=Color(0xFF83D9BC);
 const colors=<int>[0xFFFF5277,0xFFFFAD4D,0xFFFFE66B,0xFF49E6A1,0xFF39C9F7,0xFF736BFF,0xFFB87BFF,0xFFFF77D1,0xFFFFFFFF];
 const effectNames=<String>['Color sólido','Arcoíris','Fuego','Chispas','Respiración','Olas'];
 const builtInScenes=<StudioScene>[
@@ -39,18 +40,23 @@ class _StudioShellState extends State<StudioShell>{
   Timer? poll,nightTimer;
   DateTime? nightEnd;
   List<StudioScene> saved=[];
+  List<StudioDevice> devices=[];
+  String? selectedId;
+  bool polling=false;
   bool busy=false;
   @override void initState(){super.initState();_load();}
   Future<void> _load() async{
     final p=await SharedPreferences.getInstance();
     saved=await SceneStore.load();
-    host=p.getString('device_host')??host;
-    deviceName=p.getString('device_name')??deviceName;
+    devices=await DeviceStore.load();
+    selectedId=await DeviceStore.selected();
+    if(devices.isNotEmpty){final active=devices.where((d)=>d.id==selectedId).toList();final d=active.isEmpty?devices.first:active.first;host=d.host;deviceName=d.name;selectedId=d.id;}
+    if(devices.isEmpty){host=p.getString('device_host')??host;deviceName=p.getString('device_name')??deviceName;}
     if(mounted)setState((){});
-    if(p.getString('device_host')!=null)await connect();
+    if(devices.isNotEmpty)await connect();
   }
   Future<void> connect() async{
-    poll?.cancel();setState((){busy=true;message='Conectando…';});
+    poll?.cancel();if(busy)return;setState((){busy=true;message='Conectando…';});
     try{
       final a=DeviceApi(host.trim());
       final s=await a.getState();
@@ -62,8 +68,11 @@ class _StudioShellState extends State<StudioShell>{
     finally{if(mounted)setState(()=>busy=false);}
   }
   Future<void> refresh()async{
+    if(polling||busy||api==null)return;
+    polling=true;
     try{final s=await api?.getState();if(mounted&&s!=null)setState((){state=s;message='Conectado';});}
     catch(_){if(mounted)setState(()=>message='Sin respuesta');}
+    finally{polling=false;}
   }
   void notice(String text){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(text)));}
   Future<void> send(Map<String,String> fields)async{
@@ -87,23 +96,90 @@ class _StudioShellState extends State<StudioShell>{
     setState(()=>saved=[...saved,StudioScene(name,s.color,s.brightness,s.effect,s.speed)]);
     await SceneStore.save(saved);notice('Escena guardada en este teléfono');
   }
-  Future<void> editDevice()async{
-    final ip=TextEditingController(text:host),name=TextEditingController(text:deviceName);
-    final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
-      title:const Text('Configurar dispositivo'),
-      content:Column(mainAxisSize:MainAxisSize.min,children:[
-        TextField(controller:name,decoration:const InputDecoration(labelText:'Nombre')),
-        const SizedBox(height:12),
-        TextField(controller:ip,keyboardType:TextInputType.url,decoration:const InputDecoration(labelText:'IP o host local',hintText:'192.168.1.50'))]),
-      actions:[TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancelar')),
-        FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Guardar y conectar'))]));
-    if(ok==true&&ip.text.trim().isNotEmpty){
-      host=ip.text.trim();deviceName=name.text.trim().isEmpty?'Mi tira RGB':name.text.trim();
-      final p=await SharedPreferences.getInstance();await p.setString('device_name',deviceName);
-      await connect();
+  Future<void> editDevice({StudioDevice? existing})async{
+    final ip=TextEditingController(text:existing?.host??'');
+    final name=TextEditingController(text:existing?.name??'');
+    final result=await showModalBottomSheet<bool>(context:context,isScrollControlled:true,showDragHandle:true,
+      builder:(ctx)=>Padding(padding:EdgeInsets.fromLTRB(24,12,24,MediaQuery.viewInsetsOf(ctx).bottom+32),
+        child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Text(existing==null?'Añadir controlador':'Editar controlador',style:Theme.of(ctx).textTheme.headlineSmall),
+          const SizedBox(height:10),
+          const Text('Conecta el teléfono a la misma red WiFi que el controlador.',style:TextStyle(color:Colors.white60)),
+          const SizedBox(height:20),
+          TextField(controller:name,textCapitalization:TextCapitalization.sentences,
+            decoration:const InputDecoration(labelText:'Nombre',hintText:'LED del salón')),
+          const SizedBox(height:12),
+          TextField(controller:ip,keyboardType:TextInputType.url,
+            decoration:const InputDecoration(labelText:'Dirección IP',hintText:'192.168.1.50')),
+          const SizedBox(height:20),
+          SizedBox(width:double.infinity,child:FilledButton(onPressed:()=>Navigator.pop(ctx,true),
+            child:const Text('Guardar controlador'))),
+        ])));
+    if(result==true){
+      final address=ip.text.trim();
+      final uri=Uri.tryParse(address.contains('://')?address:'http://$address');
+      if(uri==null||uri.host.isEmpty||uri.host.contains(' ')||!(uri.scheme=='http'||uri.scheme=='https')){
+        notice('Introduce una dirección IP o un host válido');
+      }else{
+        final id=existing?.id??DateTime.now().microsecondsSinceEpoch.toString();
+        final device=StudioDevice(id:id,name:name.text.trim().isEmpty?'Controlador LED':name.text.trim(),host:address);
+        setState((){
+          devices=[for(final d in devices)if(d.id!=id)d,device];
+          selectedId=id;host=device.host;deviceName=device.name;api=null;state=null;message='Sin conectar';
+        });
+        await DeviceStore.save(devices);await DeviceStore.select(id);
+        await connect();
+      }
     }
     ip.dispose();name.dispose();
   }
+  Future<void> selectDevice(StudioDevice d)async{
+    if(busy)return;
+    setState((){selectedId=d.id;host=d.host;deviceName=d.name;api=null;state=null;message='Sin conectar';});
+    await DeviceStore.select(d.id);await connect();
+  }
+  Future<void> removeDevice(StudioDevice d)async{
+    final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(
+      title:const Text('Eliminar controlador'),
+      content:Text('¿Eliminar "${d.name}" de esta aplicación?'),
+      actions:[TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancelar')),
+        TextButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Eliminar'))]));
+    if(ok!=true)return;
+    setState((){
+      devices=devices.where((x)=>x.id!=d.id).toList();
+      if(selectedId==d.id){poll?.cancel();api=null;state=null;message='Sin conectar';selectedId=null;}
+    });
+    await DeviceStore.save(devices);
+    if(devices.isNotEmpty&&selectedId==null){await selectDevice(devices.first);}
+    if(devices.isEmpty){final p=await SharedPreferences.getInstance();await p.remove('device_host');}
+  }
+  Widget devicesPage()=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Row(children:[Expanded(child:Text('Controladores',style:Theme.of(context).textTheme.titleLarge)),
+      FilledButton.icon(onPressed:()=>editDevice(),icon:const Icon(Icons.add),label:const Text('Añadir'))]),
+    const SizedBox(height:10),
+    if(devices.isEmpty)card(const ListTile(leading:Icon(Icons.router_outlined),
+      title:Text('No hay controladores'),subtitle:Text('Añade una ESP32 conectada a tu red WiFi.'))),
+    ...devices.map((d)=>Card(child:ListTile(
+      onTap:()=>selectDevice(d),leading:Icon(Icons.lightbulb_outline,color:d.id==selectedId?violet:Colors.white54),
+      title:Text(d.name),subtitle:Text('${d.host} · ${d.id==selectedId?message:'Guardado'}'),
+      trailing:PopupMenuButton<String>(onSelected:(v){if(v=='edit'){editDevice(existing:d);}else{removeDevice(d);}},
+        itemBuilder:(_)=>const [PopupMenuItem(value:'edit',child:Text('Editar')),PopupMenuItem(value:'delete',child:Text('Eliminar'))])))),
+    const SizedBox(height:10),
+    OutlinedButton.icon(onPressed:scanBle,icon:const Icon(Icons.bluetooth_searching),label:const Text('Buscar por Bluetooth')),
+    const Padding(padding:EdgeInsets.all(8),child:Text('La búsqueda Bluetooth detecta dispositivos compatibles, pero todavía no configura el WiFi.',style:TextStyle(color:Colors.white54))),
+  ]);
+  Widget mqttPage()=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    section('Home Assistant · MQTT'),
+    card(const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Text('Integración pendiente',style:TextStyle(fontSize:18,fontWeight:FontWeight.w600)),
+      SizedBox(height:10),
+      Text('Para usar Home Assistant, el firmware ESP32 debe conectarse a un broker MQTT y publicar su estado. La aplicación no puede activar esa función por sí sola.'),
+      SizedBox(height:12),
+      SelectableText('Tema sugerido: mostys-led/<id>/state\nComandos: mostys-led/<id>/set'),
+      SizedBox(height:12),
+      Text('No introduzcas credenciales MQTT en esta versión: aún no existe un canal seguro para enviarlas a la ESP32.',style:TextStyle(color:Colors.white60)),
+    ])),
+  ]);
   Future<void> scanBle()async{
     notice('Buscando dispositivos BLE RGBStudio…');
     try{final found=await BleProvisioning.scan();notice('Dispositivos encontrados: ${found.length}. El aprovisionamiento WiFi aún no está disponible.');}
@@ -121,8 +197,8 @@ class _StudioShellState extends State<StudioShell>{
   Widget header()=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     const Text("MOSTY'S LED",style:TextStyle(color:violet,letterSpacing:3,fontSize:12,fontWeight:FontWeight.bold)),
     const SizedBox(height:5),
-    Row(children:[Expanded(child:Text(['Tu iluminación','Explorar escenas','Efectos','Ajustes'][page],style:const TextStyle(fontSize:29,fontWeight:FontWeight.w800))),
-      IconButton(onPressed:editDevice,tooltip:'Configurar dispositivo',icon:const Icon(Icons.tune_rounded))]),
+    Row(children:[Expanded(child:Text(['Iluminación','Escenas','Efectos','Dispositivos'][page],style:const TextStyle(fontSize:29,fontWeight:FontWeight.w800))),
+      IconButton(onPressed:()=>setState(()=>page=3),tooltip:'Controladores',icon:const Icon(Icons.tune_rounded))]),
   ]);
   Widget preview(LedState? s)=>Container(height:150,decoration:BoxDecoration(borderRadius:BorderRadius.circular(22),
     gradient:LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[
@@ -143,7 +219,7 @@ class _StudioShellState extends State<StudioShell>{
         const SizedBox(height:10),
         Row(children:[Expanded(child:Text(s==null?'Conecta tu controlador':'Control principal',style:const TextStyle(color:Colors.white70))),
           Switch(value:s?.power??false,onChanged:s==null?null:(v)=>send({'power':'$v'}))]),
-        if(s==null)FilledButton.icon(onPressed:editDevice,icon:const Icon(Icons.wifi),label:const Text('Conectar dispositivo')),
+        if(s==null)FilledButton.icon(onPressed:()=>setState(()=>page=3),icon:const Icon(Icons.wifi),label:const Text('Conectar dispositivo')),
         if(s!=null)...[
           Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[const Text('Brillo'),Text('${(s.brightness*100/255).round()}%')]),
           Slider(value:s.brightness.toDouble().clamp(0,255),max:255,divisions:255,
@@ -169,9 +245,9 @@ class _StudioShellState extends State<StudioShell>{
           if(removable)InkWell(onTap:()async{setState(()=>saved=saved.where((e)=>!identical(e,scene)).toList());await SceneStore.save(saved);},
             child:const Icon(Icons.close,size:18))]),
         const Spacer(),Text(scene.name,style:const TextStyle(fontSize:16,fontWeight:FontWeight.w700)),
-        const Text('Tocar para aplicar',style:TextStyle(fontSize:10,color:Colors.white70))]))))));
+        const Text('Aplicar',style:TextStyle(fontSize:10,color:Colors.white70))]))))));
   Widget scenesPage()=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    const Text('Escenas listas para cada momento. Guarda tus propias combinaciones de color, brillo y efecto.',style:TextStyle(color:Colors.white60)),
+    const SizedBox.shrink(),
     section('Galería de ambientes'),
     GridView.count(shrinkWrap:true,physics:const NeverScrollableScrollPhysics(),crossAxisCount:2,childAspectRatio:1.23,
       children:builtInScenes.map((s)=>sceneTile(s)).toList()),
@@ -184,7 +260,7 @@ class _StudioShellState extends State<StudioShell>{
   Widget effectsPage(){
     final s=state;
     return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      const Text('Selecciona un efecto compatible con el firmware. Los nombres e identificadores son provisionales.',style:TextStyle(color:Colors.white60)),
+      const Text('Los efectos disponibles dependen del firmware instalado.',style:TextStyle(color:Colors.white60)),
       section('Efectos dinámicos'),
       ...List.generate(effectNames.length,(i)=>Card(child:ListTile(
         leading:CircleAvatar(backgroundColor:Color(colors[i]).withValues(alpha:0.25),child:Icon([Icons.circle,Icons.gradient,Icons.local_fire_department,Icons.auto_awesome,Icons.blur_on,Icons.waves][i],color:Color(colors[i]))),
@@ -202,10 +278,11 @@ class _StudioShellState extends State<StudioShell>{
     ]);
   }
   Widget settingsPage()=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    section('Mi dispositivo'),
+    devicesPage(),
+    section('Conexión'),
     card(Column(children:[
       ListTile(contentPadding:EdgeInsets.zero,leading:const Icon(Icons.lightbulb_outline,color:violet),title:Text(deviceName),
-        subtitle:Text('$host · $message'),trailing:IconButton(onPressed:editDevice,icon:const Icon(Icons.edit_outlined))),
+        subtitle:Text('$host · $message'),trailing:IconButton(onPressed:()=>editDevice(existing:devices.where((d)=>d.id==selectedId).isEmpty?null:devices.firstWhere((d)=>d.id==selectedId)),icon:const Icon(Icons.edit_outlined))),
       const Divider(),ListTile(contentPadding:EdgeInsets.zero,leading:const Icon(Icons.refresh,color:violet),
         title:const Text('Actualizar estado'),onTap:refresh),
       ListTile(contentPadding:EdgeInsets.zero,leading:const Icon(Icons.bluetooth_searching,color:violet),
@@ -218,6 +295,7 @@ class _StudioShellState extends State<StudioShell>{
       const SizedBox(height:8),const Text('El temporizador funciona en el teléfono y requiere mantener la aplicación abierta. No es una automatización del dispositivo.',style:TextStyle(color:Colors.white60,fontSize:12)),
       if(nightEnd!=null)TextButton(onPressed:(){nightTimer?.cancel();setState(()=>nightEnd=null);},child:const Text('Cancelar temporizador')),
     ])),
+    mqttPage(),
     section('Acerca de'),
     card(const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       Text("mosty's led · prototipo 0.3",style:TextStyle(fontWeight:FontWeight.bold)),
@@ -233,7 +311,7 @@ class _StudioShellState extends State<StudioShell>{
         NavigationDestination(icon:Icon(Icons.home_outlined),selectedIcon:Icon(Icons.home),label:'Inicio'),
         NavigationDestination(icon:Icon(Icons.auto_awesome_outlined),selectedIcon:Icon(Icons.auto_awesome),label:'Escenas'),
         NavigationDestination(icon:Icon(Icons.blur_on_outlined),selectedIcon:Icon(Icons.blur_on),label:'Efectos'),
-        NavigationDestination(icon:Icon(Icons.settings_outlined),selectedIcon:Icon(Icons.settings),label:'Ajustes')]),
+        NavigationDestination(icon:Icon(Icons.settings_outlined),selectedIcon:Icon(Icons.settings),label:'Dispositivos')]),
   );
   @override void dispose(){poll?.cancel();nightTimer?.cancel();super.dispose();}
 }
