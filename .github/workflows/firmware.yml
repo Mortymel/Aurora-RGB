@@ -1,0 +1,38 @@
+name: ESP32 Firmware
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'firmware/**'
+      - 'web-flasher/**'
+      - '.github/workflows/firmware.yml'
+permissions:
+  contents: read
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PlatformIO and esptool
+        run: python -m pip install platformio esptool
+      - name: Compile ESP32-WROOM-32 firmware
+        run: pio run -d firmware
+      - name: Merge flash image for browser installer
+        run: |
+          python -m esptool --chip esp32 merge_bin -o web-flasher/firmware.bin --flash_mode dio --flash_freq 40m --flash_size 4MB \
+            0x1000 firmware/.pio/build/esp32dev/bootloader.bin \
+            0x8000 firmware/.pio/build/esp32dev/partitions.bin \
+            0xe000 firmware/.pio/build/esp32dev/boot_app0.bin \
+            0x10000 firmware/.pio/build/esp32dev/firmware.bin
+      - name: Upload firmware and web installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mortys-LED-ESP32-Firmware-Web-Flasher
+          path: web-flasher/
+          if-no-files-found: error
+          retention-days: 30
