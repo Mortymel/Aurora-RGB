@@ -1,5 +1,5 @@
 name: esp32_rgb_studio
-description: ESP32 RGB Studio companion app
+description: mosty's led - ESP32 RGB lighting controller
 publish_to: none
 version: 0.2.0+2
 environment:
