@@ -205,8 +205,7 @@ class _StudioShellState extends State<StudioShell>{
   Widget header()=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     const Text("MORTY'S LED",style:TextStyle(color:violet,letterSpacing:3,fontSize:12,fontWeight:FontWeight.bold)),
     const SizedBox(height:5),
-    Row(children:[Expanded(child:Text(['Iluminación','Escenas','Efectos','Dispositivos'][page],style:const TextStyle(fontSize:29,fontWeight:FontWeight.w800))),
-      const SizedBox.shrink()]),
+    Text(['Iluminación','Escenas','Efectos','Dispositivos'][page],style:const TextStyle(fontSize:29,fontWeight:FontWeight.w800)),
   ]);
   Widget preview(LedState? s)=>Container(height:150,decoration:BoxDecoration(borderRadius:BorderRadius.circular(22),
     gradient:LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[
@@ -311,7 +310,7 @@ class _StudioShellState extends State<StudioShell>{
       const Text('Los efectos disponibles dependen del firmware instalado.',style:TextStyle(color:Colors.white60)),
       section('Efectos dinámicos'),
       ...List.generate(effectNames.length,(i)=>Card(child:ListTile(
-        leading:CircleAvatar(backgroundColor:Color(colors[i%colors.length]).withValues(alpha:0.25),child:Icon([Icons.circle,Icons.gradient,Icons.local_fire_department,Icons.auto_awesome,Icons.blur_on,Icons.waves][i%6],color:Color(colors[i]))),
+        leading:CircleAvatar(backgroundColor:Color(colors[i%colors.length]).withValues(alpha:0.25),child:Icon([Icons.circle,Icons.gradient,Icons.local_fire_department,Icons.auto_awesome,Icons.blur_on,Icons.waves][i%6],color:Color(colors[i%colors.length]))),
         title:Text(effectNames[i]),subtitle:Text(i==0?'Color constante':'Animación LED · modo $i'),
         trailing:Icon(s?.effect==i?Icons.check_circle:Icons.chevron_right,color:s?.effect==i?violet:Colors.white38),
         onTap:()=>send({'effect':'$i','power':'true'})))),
