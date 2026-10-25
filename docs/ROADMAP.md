@@ -10,6 +10,18 @@ Este documento distingue trabajo publicado, trabajo sin validar y funciones futu
 - [ ] Obtener un workflow verde y APK instalable verificado.
 - [ ] Probar instalación en dispositivo Android real.
 
+## Etapa 0.5 — Experiencia de app (inspiración comercial)
+
+- [x] Navegación inferior: Inicio, Escenas, Efectos, Ajustes.
+- [x] Galería de seis escenas rápidas.
+- [x] Guardar, aplicar y eliminar escenas personalizadas en almacenamiento local.
+- [x] Vista ilustrativa de tira LED y accesos rápidos.
+- [x] Temporizador de apagado local (solo mientras la app siga activa).
+- [x] Renombrar dispositivo y editar dirección IP.
+- [ ] Validar compilación y experiencia de usuario en Android físico.
+- [ ] Rueda HSV interactiva, edición de colores precisos y vista LED real.
+- [ ] Escenas por zonas, programaciones persistentes y sincronización multi-dispositivo (requieren firmware).
+
 ## Etapa 1 — Control RGB estable
 
 - [x] Interfaz inicial de encendido, brillo, color, velocidad y efectos.
