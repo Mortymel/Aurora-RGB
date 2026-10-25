@@ -23,7 +23,7 @@ void main(){WidgetsFlutterBinding.ensureInitialized();runApp(const StudioApp());
 class StudioApp extends StatelessWidget {
   const StudioApp({super.key});
   @override Widget build(BuildContext context)=>MaterialApp(
-    title:'ESP32 RGB Studio',debugShowCheckedModeBanner:false,
+    title:"mosty's led",debugShowCheckedModeBanner:false,
     theme:ThemeData(useMaterial3:true,brightness:Brightness.dark,scaffoldBackgroundColor:ink,
       colorScheme:ColorScheme.fromSeed(seedColor:violet,brightness:Brightness.dark),
       cardTheme:const CardThemeData(color:panel,margin:EdgeInsets.symmetric(vertical:7)),
@@ -119,7 +119,7 @@ class _StudioShellState extends State<StudioShell>{
     if(trailing!=null)trailing]));
   Widget card(Widget child)=>Card(child:Padding(padding:const EdgeInsets.all(17),child:child));
   Widget header()=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    const Text('RGB STUDIO',style:TextStyle(color:violet,letterSpacing:3,fontSize:12,fontWeight:FontWeight.bold)),
+    const Text("MOSTY'S LED",style:TextStyle(color:violet,letterSpacing:3,fontSize:12,fontWeight:FontWeight.bold)),
     const SizedBox(height:5),
     Row(children:[Expanded(child:Text(['Tu iluminación','Explorar escenas','Efectos','Ajustes'][page],style:const TextStyle(fontSize:29,fontWeight:FontWeight.w800))),
       IconButton(onPressed:editDevice,tooltip:'Configurar dispositivo',icon:const Icon(Icons.tune_rounded))]),
@@ -220,7 +220,7 @@ class _StudioShellState extends State<StudioShell>{
     ])),
     section('Acerca de'),
     card(const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Text('ESP32 RGB Studio · prototipo 0.3',style:TextStyle(fontWeight:FontWeight.bold)),
+      Text("mosty's led · prototipo 0.3",style:TextStyle(fontWeight:FontWeight.bold)),
       SizedBox(height:8),Text('Control WiFi local. Sin nube ni cuenta. Escenas almacenadas localmente.',style:TextStyle(color:Colors.white70)),
       SizedBox(height:8),Text('BLE WiFi, música, segmentos, horarios persistentes y MQTT requieren firmware y desarrollo adicional.',style:TextStyle(color:Colors.amberAccent,fontSize:12)),
     ])),
