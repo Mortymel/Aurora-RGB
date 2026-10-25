@@ -25,5 +25,6 @@ application = root.find('application')
 if application is None:
     raise SystemExit('Application element missing')
 application.set(ns + 'usesCleartextTraffic', 'true')
+application.set(ns + 'label', "Morty's LED")
 manifest.write_text(ET.tostring(root, encoding='unicode') + '\n', encoding='utf-8')
 print('Android permissions and LAN HTTP access configured')
