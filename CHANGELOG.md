@@ -2,6 +2,15 @@
 
 El número visible en Android procede de `pubspec.yaml` (`versionName+versionCode`). La etiqueta de compilación y el APK deben usar el mismo número.
 
+## 0.5.0+5 — En compilación
+
+- Doce efectos enumerados en la aplicación, alineados con el nuevo firmware ESP32.
+- Brillo y velocidad controlables desde la app y la API del firmware.
+- Firmware ESP32 0.1.0-dev con FastLED, WiFi local y base MQTT Discovery.
+- Proyecto PlatformIO y flasheador web basado en ESP Web Tools (pendiente de binario y publicación HTTPS).
+- Eliminado el acceso redundante de la esquina superior derecha.
+- Firmware y hardware aún sin validar físicamente.
+
 ## 0.4.0+4 — Desarrollo
 
 - Nombre de instalación Android: **Morty's LED**.
