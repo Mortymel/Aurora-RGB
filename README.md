@@ -22,7 +22,9 @@ La comunicación actual está diseñada para **WiFi local mediante HTTP**. El de
 | Interfaz Flutter con tema oscuro | Código disponible |
 | Control WiFi HTTP | Implementado en cliente; integración pendiente |
 | Encendido, brillo, color, efectos y velocidad | Interfaz implementada; hardware pendiente |
-| Persistencia de dirección IP | Código disponible |
+| Persistencia de dirección IP y nombre del dispositivo | Código disponible |
+| Galería de escenas y escenas personalizadas locales | Código disponible; pruebas pendientes |
+| Temporizador de apagado desde la app | Código disponible; requiere app abierta |
 | Escaneo de dispositivos BLE | Experimental |
 | Configurar WiFi por BLE | Planificado |
 | Efectos de música con INMP441 | Planificado |
@@ -72,6 +74,7 @@ Requiere Flutter, Android SDK y acceso autorizado a este repositorio privado.
 | [API HTTP](docs/API.md) | Contrato esperado por Flutter |
 | [Hoja de ruta](docs/ROADMAP.md) | Fases, tareas y criterios 1.0 |
 | [Solución de problemas](docs/SOLUCION-DE-PROBLEMAS.md) | Diagnóstico de build, red y BLE |
+| [Investigación UX](docs/INVESTIGACION-UX.md) | Referentes WLED, Govee y Hue; prioridades |
 | [Contribuir](CONTRIBUTING.md) | Convenciones y propuestas |
 | [Seguridad](SECURITY.md) | Limitaciones y reporte responsable |
 
