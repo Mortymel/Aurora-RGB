@@ -261,6 +261,7 @@ void setup() {
   FastLED.addLeds<WS2812B,LED_PIN,GRB>(leds,pixelCount);
   FastLED.setMaxPowerInVoltsAndMilliamps(5,LED_MAX_MILLIAMPS);
   FastLED.clear(true);
+  WiFi.persistent(false); // Candidate credentials stay in RAM until our atomic NVS commit.
   WiFi.mode(WIFI_STA);
   String ssid=prefs.getString("ssid",""),pass=prefs.getString("pass","");
   if (!setupDoc.isNull()) { ssid = setupDoc["ssid"].as<String>(); pass = setupDoc["password"].as<String>(); }
@@ -271,7 +272,8 @@ void setup() {
     while (WiFi.status() != WL_CONNECTED && millis() - started < 12000) delay(100);
   }
   if (WiFi.status() == WL_CONNECTED) startMdns();
-  else startProvisioning();
+  else if (ssid.isEmpty()) startProvisioning();
+  else Serial.println("WiFi unavailable. Hold BOOT 3 seconds to change network.");
   mqtt.setServer(mqttHost.c_str(),mqttPort);
   mqtt.setBufferSize(1536);
   mqtt.setCallback(mqttMessage);

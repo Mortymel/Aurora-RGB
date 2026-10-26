@@ -67,6 +67,12 @@ class SetupWriteCallbacks : public BLECharacteristicCallbacks {
     if (!setupOpen) return;
     std::string chunk = characteristic->getValue();
     if (xSemaphoreTake(setupRxMutex, pdMS_TO_TICKS(100)) != pdTRUE) return;
+    if (chunk.size() == 1 && chunk[0] == '!') {
+      setupRx.reset();
+      xSemaphoreGive(setupRxMutex);
+      characteristic->setValue("");
+      return;
+    }
     for (char c : chunk) {
       if (setupRx.push(c)) {
         SetupCommand command = {};
@@ -107,7 +113,9 @@ void startProvisioning() {
     BLEDevice::getAdvertising()->setMinPreferred(0x06);
     BLEDevice::getAdvertising()->setMinPreferred(0x12);
   }
-  setupRequest = ""; setupSucceeded = false;
+  xQueueReset(setupQueue);
+  if (xSemaphoreTake(setupRxMutex, pdMS_TO_TICKS(100)) == pdTRUE) { setupRx.reset(); xSemaphoreGive(setupRxMutex); }
+  setupRequest = ""; setupSucceeded = false; setupDisconnected = false;
   setupOpenedAt = millis(); setupOpen = true;
   setSetupStatus("ready");
   BLEDevice::startAdvertising();
@@ -147,7 +155,7 @@ void handleProvisioning() {
     const JsonString ssid = doc["ssid"].as<JsonString>(), password = doc["password"].as<JsonString>(), name = doc["name"].as<JsonString>();
     bool requestValid = setupRequest.length() >= 1 && setupRequest.length() <= 32;
     for (char c : setupRequest) if (!isalnum((unsigned char)c) && c != '-') requestValid = false;
-    if (parsed || !requestValid || doc["version"] != 1 || !doc["pixels"].is<int>() ||
+    if (parsed || !requestValid || !doc["version"].is<int>() || doc["version"].as<int>() != 1 || !doc["pixels"].is<int>() ||
         !validSetupFields(ssid.c_str(), ssid.size(), password.c_str(), password.size(), name.c_str(), name.size(), doc["pixels"].as<int>())) {
       setSetupStatus("error", "invalid_config");
     } else {

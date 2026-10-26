@@ -16,7 +16,8 @@ class FakeProvisioning implements ProvisioningTransport {
   @override Future<ProvisioningResult> provision(BleController device, ProvisioningConfig config) async {
     calls++; received = config;
     if (fail) throw StateError('No se pudo conectar al WiFi.');
-    return pending != null ? pending!.future : const ProvisioningResult(id: 'abc', host: '192.168.1.30', name: 'Salón', pixels: 60);
+    if (pending != null) return await pending!.future;
+    return const ProvisioningResult(id: 'abc', host: '192.168.1.30', name: 'Salón', pixels: 60);
   }
 }
 

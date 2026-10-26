@@ -53,6 +53,7 @@ class _StudioShellState extends State<StudioShell>{
     saved=await SceneStore.load();
     devices=await DeviceStore.load();
     selectedId=await DeviceStore.selected();
+    if (!mounted) return;
     if(devices.isNotEmpty){final active=devices.where((d)=>d.id==selectedId).toList();final d=active.isEmpty?devices.first:active.first;host=d.host;deviceName=d.name;selectedId=d.id;}
     if(devices.isEmpty){host=p.getString('device_host')??host;deviceName=p.getString('device_name')??deviceName;}
     if(mounted)setState((){});
@@ -220,7 +221,7 @@ class _StudioShellState extends State<StudioShell>{
       SizedBox(height:10),
       Text('Para usar Home Assistant, el firmware ESP32 debe conectarse a un broker MQTT y publicar su estado. La aplicación no puede activar esa función por sí sola.'),
       SizedBox(height:12),
-      SelectableText('Tema sugerido: mostys-led/<id>/state\nComandos: mostys-led/<id>/set'),
+      SelectableText('Tema sugerido: mortys-led/<id>/state\nComandos: mostys-led/<id>/set'),
       SizedBox(height:12),
       Text('No introduzcas credenciales MQTT en esta versión: aún no existe un canal seguro para enviarlas a la ESP32.',style:TextStyle(color:Colors.white60)),
     ])),

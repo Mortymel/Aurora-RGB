@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'provisioning_protocol.dart';
 
 class BleProvisioning implements ProvisioningTransport {
@@ -17,14 +18,20 @@ class BleProvisioning implements ProvisioningTransport {
     final generation = _generation;
     if (!await FlutterBluePlus.isSupported) throw StateError('Bluetooth LE no disponible.');
     if (Platform.isAndroid) {
-      final permissions = await [Permission.bluetoothScan, Permission.bluetoothConnect, Permission.locationWhenInUse].request();
-      if (!(permissions[Permission.bluetoothScan]?.isGranted ?? false) || !(permissions[Permission.bluetoothConnect]?.isGranted ?? false)) {
-        throw StateError('Permite el acceso a Bluetooth en los ajustes de la aplicación.');
+      final sdk = (await DeviceInfoPlugin().androidInfo).version.sdkInt;
+      final needed = sdk >= 31 ? [Permission.bluetoothScan, Permission.bluetoothConnect] : [Permission.locationWhenInUse];
+      final permissions = await needed.request();
+      if (permissions.values.any((permission) => !permission.isGranted)) {
+        throw StateError('Permite el acceso a Bluetooth o ubicación en los ajustes de la aplicación.');
+      }
+      if (sdk < 31 && !await Permission.locationWhenInUse.serviceStatus.isEnabled) {
+        throw StateError('Activa la ubicación del teléfono para buscar Bluetooth en Android 11 o anterior.');
       }
     }
     _check(generation);
     final adapter = await FlutterBluePlus.adapterState.where((s) => s != BluetoothAdapterState.unknown).first.timeout(const Duration(seconds: 5));
     if (adapter != BluetoothAdapterState.on) throw StateError('Activa el Bluetooth. En Android 11 o anterior, activa también la ubicación.');
+    _check(generation);
     final devices = <String, BleController>{};
     final subscription = FlutterBluePlus.onScanResults.listen((results) {
       for (final result in results) {
@@ -65,8 +72,8 @@ class BleProvisioning implements ProvisioningTransport {
       final initial = jsonDecode(utf8.decode(await status.read())) as Map<String, dynamic>;
       if (initial['version'] != 1) throw StateError('Versión Bluetooth incompatible.');
       _check(generation);
-      // JSON line framing works at the minimum BLE MTU, even for split UTF-8.
-      await write.write([10]);
+      // An explicit reset discards interrupted JSON; newline commits a complete command.
+      await write.write([33]);
       final framed = [...payload, 10];
       for (var offset = 0; offset < framed.length; offset += 20) {
         _check(generation);
