@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -56,7 +55,7 @@ class BleProvisioning implements ProvisioningTransport {
   Future<ProvisioningResult> provision(BleController controller, ProvisioningConfig config) async {
     final generation = ++_generation;
     final requestId = DateTime.now().microsecondsSinceEpoch.toRadixString(36);
-    final payload = config.encode(requestId);
+    config.encode(requestId);
     final device = BluetoothDevice.fromId(controller.id);
     _connected = device;
     try {
@@ -69,30 +68,9 @@ class BleProvisioning implements ProvisioningTransport {
       final write = service?.characteristics.where((c) => c.uuid == Guid(provisioningConfigUuid)).firstOrNull;
       final status = service?.characteristics.where((c) => c.uuid == Guid(provisioningStatusUuid)).firstOrNull;
       if (write == null || status == null) throw StateError('Firmware incompatible. Flashea el firmware 0.8.0.');
-      final initial = jsonDecode(utf8.decode(await status.read())) as Map<String, dynamic>;
-      if (initial['version'] != 1) throw StateError('Versión Bluetooth incompatible.');
-      _check(generation);
-      // An explicit reset discards interrupted JSON; newline commits a complete command.
-      await write.write([33]);
-      final framed = [...payload, 10];
-      for (var offset = 0; offset < framed.length; offset += 20) {
-        _check(generation);
-        await write.write(framed.sublist(offset, offset + 20 < framed.length ? offset + 20 : framed.length));
-      }
-      final deadline = DateTime.now().add(const Duration(seconds: 40));
-      while (DateTime.now().isBefore(deadline)) {
-        _check(generation);
-        final result = jsonDecode(utf8.decode(await status.read())) as Map<String, dynamic>;
-        _check(generation);
-        if (result['request_id'] == requestId) {
-          if (result['state'] == 'connected') return ProvisioningResult.fromStatus(result);
-          if (result['state'] == 'error') throw StateError(result['error'] == 'wifi_failed'
-            ? 'No se pudo conectar al WiFi. Revisa la contraseña y utiliza una red de 2,4 GHz.'
-            : 'La ESP32 rechazó la configuración (${result['error']}).');
-        }
-        await Future<void>.delayed(const Duration(milliseconds: 600));
-      }
-      throw TimeoutException('Sin confirmación. Si la ESP32 ya guardó los datos, utiliza «Ya está conectada al WiFi».');
+      return await exchangeProvisioning(config: config, requestId: requestId,
+        write: (bytes) => write.write(bytes), read: () => status.read(),
+        checkCancelled: () => _check(generation));
     } finally {
       try { await device.disconnect(); } catch (_) { /* Already disconnected. */ }
       if (identical(_connected, device)) _connected = null;

@@ -83,10 +83,11 @@ void main() {
     final fake = FakeProvisioning()..pending = Completer<ProvisioningResult>(); StudioDevice? saved;
     await open(tester, fake, (d) => saved = d);
     await tester.tap(find.text('Configurar y añadir tira')); await tester.pump();
-    await tester.scrollUntilVisible(find.text('Cancelar operación'), 200, scrollable: find.byType(Scrollable).last);
+    await tester.scrollUntilVisible(find.text('Cancelar operación'), 200, scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('Cancelar operación')); await tester.pumpAndSettle();
     fake.pending!.complete(const ProvisioningResult(id: 'abc', host: '192.168.1.30', name: 'Salón', pixels: 60));
     await tester.pumpAndSettle(); expect(saved, isNull); expect(fake.cancellations, greaterThan(0));
     await tester.pumpWidget(const SizedBox.shrink());
   });
 }
+

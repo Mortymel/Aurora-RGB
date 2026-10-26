@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'device_store.dart';
 
@@ -55,4 +56,51 @@ abstract class ProvisioningTransport {
   Future<List<BleController>> scan();
   Future<ProvisioningResult> provision(BleController device, ProvisioningConfig config);
   Future<void> cancel();
+}
+
+// Transport-independent exchange, tested with the same framing used by real GATT.
+Future<ProvisioningResult> exchangeProvisioning({
+  required ProvisioningConfig config,
+  required String requestId,
+  required Future<void> Function(List<int>) write,
+  required Future<List<int>> Function() read,
+  required void Function() checkCancelled,
+  Duration timeout = const Duration(seconds: 40),
+  Future<void> Function(Duration)? pause,
+}) async {
+  final payload = config.encode(requestId);
+  checkCancelled();
+  final initial = jsonDecode(utf8.decode(await read())) as Map<String, dynamic>;
+  if (initial['version'] != 1) throw StateError('Versión Bluetooth incompatible.');
+  checkCancelled();
+  await write([33]); // Explicit reset; never commits an interrupted previous JSON.
+  final framed = [...payload, 10];
+  for (var offset = 0; offset < framed.length; offset += 20) {
+    checkCancelled();
+    await write(framed.sublist(offset, offset + 20 < framed.length ? offset + 20 : framed.length));
+  }
+  final clock = Stopwatch()..start();
+  while (clock.elapsed < timeout) {
+    checkCancelled();
+    final status = jsonDecode(utf8.decode(await read())) as Map<String, dynamic>;
+    checkCancelled();
+    if (status['version'] != 1) throw StateError('Versión Bluetooth incompatible.');
+    if (status['request_id'] == requestId) {
+      if (status['state'] == 'connected') {
+        final result = ProvisioningResult.fromStatus(status);
+        if (result.pixels != config.pixels || result.name != config.name.trim()) {
+          throw const FormatException('La confirmación no coincide con la configuración enviada.');
+        }
+        return result;
+      }
+      if (status['state'] == 'error') {
+        throw StateError(status['error'] == 'wifi_failed'
+          ? 'No se pudo conectar al WiFi. Revisa la contraseña y utiliza una red de 2,4 GHz.'
+          : 'La ESP32 rechazó la configuración (${status['error']}).');
+      }
+    }
+    if (pause != null) { await pause(const Duration(milliseconds: 600)); }
+    else { await Future<void>.delayed(const Duration(milliseconds: 600)); }
+  }
+  throw TimeoutException('Sin confirmación. Si la ESP32 ya guardó los datos, utiliza «Ya está conectada al WiFi».');
 }

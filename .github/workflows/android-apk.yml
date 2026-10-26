@@ -9,6 +9,7 @@ on:
       - 'pubspec.yaml'
       - 'pubspec.lock'
       - 'scripts/configure_android.py'
+      - 'scripts/test_android_config.py'
       - 'scripts/verify_apk.py'
       - '.github/workflows/android-apk.yml' 
 permissions:
@@ -28,6 +29,8 @@ jobs:
         run: flutter create --platforms=android --project-name esp32_rgb_studio .
       - name: Remove generated template test
         run: rm -f test/widget_test.dart
+      - name: Test Android configuration
+        run: python3 scripts/test_android_config.py
       - name: Apply Android configuration
         run: python3 scripts/configure_android.py
       - name: Install dependencies
