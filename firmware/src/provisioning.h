@@ -17,7 +17,7 @@ SemaphoreHandle_t setupRxMutex = nullptr;
 ProvisioningLineBuffer setupRx;
 BLEServer* setupServer = nullptr;
 BLECharacteristic* setupStatus = nullptr;
-volatile bool setupOpen = false, setupConnected = false, setupDisconnected = false;
+volatile bool setupOpen = false, setupConnected = false, setupDisconnected = false, setupGotIp = false;
 bool setupConnecting = false, setupSucceeded = false, mdnsRunning = false;
 uint32_t setupOpenedAt = 0, setupConnectAt = 0, setupSuccessAt = 0;
 String setupRequest, candidateSsid, candidatePassword, candidateName;
@@ -170,12 +170,13 @@ void handleProvisioning() {
       candidateSsid = ssid.c_str(); candidatePassword = password.c_str(); candidateName = name.c_str(); candidatePixels = doc["pixels"].as<int>();
       setupConnecting = true; setupConnectAt = millis();
       setSetupStatus("connecting");
-      WiFi.disconnect(); WiFi.begin(candidateSsid.c_str(), candidatePassword.c_str());
+      WiFi.disconnect(); setupGotIp = false;
+      WiFi.begin(candidateSsid.c_str(), candidatePassword.c_str());
     }
   }
   memset(command.json, 0, sizeof(command.json));
   if (setupConnecting) {
-    if (WiFi.status() == WL_CONNECTED && WiFi.SSID() == candidateSsid) {
+    if (setupGotIp && WiFi.status() == WL_CONNECTED && WiFi.SSID() == candidateSsid) {
       // One NVS key commits credentials, name and count together, only after WiFi succeeds.
       JsonDocument saved;
       saved["ssid"] = candidateSsid; saved["password"] = candidatePassword;

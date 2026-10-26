@@ -31,6 +31,7 @@ class BleProvisioning implements ProvisioningTransport {
     final adapter = await FlutterBluePlus.adapterState.where((s) => s != BluetoothAdapterState.unknown).first.timeout(const Duration(seconds: 5));
     if (adapter != BluetoothAdapterState.on) throw StateError('Activa el Bluetooth. En Android 11 o anterior, activa también la ubicación.');
     _check(generation);
+    Object? scanError;
     final devices = <String, BleController>{};
     final subscription = FlutterBluePlus.onScanResults.listen((results) {
       for (final result in results) {
@@ -39,12 +40,13 @@ class BleProvisioning implements ProvisioningTransport {
           devices[id] = BleController(id, result.advertisementData.advName.isEmpty ? 'MortysLED' : result.advertisementData.advName);
         }
       }
-    });
+    }, onError: (Object error) { scanError = error; });
     try {
       await FlutterBluePlus.startScan(withServices: [Guid(provisioningServiceUuid)], timeout: const Duration(seconds: 8));
       _check(generation);
       await FlutterBluePlus.isScanning.where((scanning) => !scanning).first.timeout(const Duration(seconds: 12));
       _check(generation);
+      if (scanError != null) throw StateError('No se pudo completar la búsqueda Bluetooth.');
       return devices.values.toList();
     } finally {
       await subscription.cancel();

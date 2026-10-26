@@ -297,6 +297,9 @@ void setup() {
   FastLED.addLeds<WS2812B,LED_PIN,GRB>(leds,pixelCount);
   FastLED.setMaxPowerInVoltsAndMilliamps(5,LED_MAX_MILLIAMPS);
   FastLED.clear(true);
+  WiFi.onEvent([](WiFiEvent_t event) {
+    if (event == ARDUINO_EVENT_WIFI_STA_GOT_IP) setupGotIp = true;
+  });
   WiFi.persistent(false); // Candidate credentials stay in RAM until our atomic NVS commit.
   WiFi.mode(WIFI_STA);
   String ssid=prefs.getString("ssid",""),pass=prefs.getString("pass","");
