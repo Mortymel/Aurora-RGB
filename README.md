@@ -1,113 +1,48 @@
-> **Versión 0.8.0 — alta por Bluetooth**
->
-> Flashea el firmware 0.8.0 y utiliza la app 0.8.0. En Android: Añadir tira → Buscar por Bluetooth → seleccionar MortysLED-… → introducir WiFi de 2,4 GHz, contraseña, nombre y cantidad de píxeles → Configurar y añadir tira. Acepta el emparejamiento de Android. La ESP32 confirma la conexión antes de guardar y la app utiliza la IP recibida. El teléfono debe estar en esa misma red para el control diario. BOOT durante 3 segundos después del arranque reabre la configuración por 10 minutos. Ya no se crea el punto de acceso WiFi abierto del firmware antiguo.
->
-> El firmware anterior no permite esta función: **hay que volver a flashear la ESP32**. Ver [protocolo y límites](docs/BLUETOOTH.md).
+# Morty's LED — versión 0.8.0
 
-# ✨ ESP32 RGB Studio
+Control local de tiras direccionables con ESP32-WROOM-32 y Android. La instalación inicial se realiza por Bluetooth LE; el control diario utiliza HTTP en la red WiFi local.
 
-**Control inteligente de iluminación LED direccionable con ESP32 y una aplicación móvil Flutter.**
+## Puesta en marcha
 
-[![Android APK](https://github.com/Mortymel/ESP32-RGB-Studio-/actions/workflows/android-apk.yml/badge.svg)](https://github.com/Mortymel/ESP32-RGB-Studio-/actions/workflows/android-apk.yml)
-![Estado](https://img.shields.io/badge/estado-prototipo-orange)
-![Hardware](https://img.shields.io/badge/hardware-ESP32--WROOM--32-blue)
-![Android](https://img.shields.io/badge/app-Flutter-7C4DFF)
+1. Instala el firmware **0.8.0** en la ESP32 desde [el instalador web](https://mortymel.github.io/ESP32-RGB-Studio-/). Desconecta la tira durante el flasheo.
+2. Instala el APK **0.8.0+9** generado por el workflow Android APK. El firmware anterior no implementa este protocolo: actualizar solamente la app no basta.
+3. Enciende la ESP32. Sin credenciales guardadas anuncia `MortysLED-…` por Bluetooth durante 10 minutos.
+4. En la app: **Añadir tira → Buscar por Bluetooth → selecciona la ESP32**.
+5. Introduce **WiFi de 2,4 GHz, contraseña, nombre y cantidad de LED/píxeles**. Cuenta grupos direccionables si tu tira agrupa varios LED.
+6. Pulsa **Configurar y añadir tira** y acepta el emparejamiento de Android. La ESP32 comprueba el WiFi y guarda la configuración solo al conectar. La app recibe su IP y añade el controlador.
+7. Conecta el teléfono a esa misma red para controlar la tira.
 
-> **Proyecto en desarrollo.** Android y firmware se compilan con GitHub Actions. La compatibilidad física debe comprobarse con cada tira. No se debe interpretar la hoja de ruta como una lista de funciones terminadas.
+Para cambiar de red, mantén **BOOT pulsado durante 3 segundos después del arranque**. Esto reabre Bluetooth durante 10 minutos sin borrar la configuración anterior. Una contraseña errónea no la sustituye. No mantengas BOOT al encender si no quieres entrar en el cargador de arranque.
 
-## 🌈 Qué es
-
-ESP32 RGB Studio busca ofrecer una experiencia visual moderna para controlar tiras LED RGB IC desde Android, mediante un microcontrolador ESP32-WROOM-32. El prototipo incorpora una interfaz oscura con acentos violetas y controles de encendido, brillo, color, velocidad y selección de efectos.
-
-La comunicación actual está diseñada para **WiFi local mediante HTTP**. El descubrimiento BLE es experimental; el aprovisionamiento WiFi por Bluetooth aún no está implementado.
-
-## 📱 Funciones y estado
+## Funciones y límites reales
 
 | Función | Estado |
-| --- | --- |
-| Interfaz Flutter con tema oscuro | Código disponible |
-| Control WiFi HTTP | Implementado en cliente; integración pendiente |
-| Encendido, brillo, color, efectos y velocidad | Interfaz implementada; hardware pendiente |
-| Nombre, IP y cantidad de LED por controlador | Configurable al añadir o editar la ESP32; guardado en Android y firmware |
-| Galería de escenas y escenas personalizadas locales | Código disponible; pruebas pendientes |
-| Temporizador de apagado desde la app | Código disponible; requiere app abierta |
-| Escaneo de dispositivos BLE | Experimental |
-| Configurar WiFi por BLE | Planificado |
-| Efectos de música con INMP441 | Planificado |
-| Segmentos y escenas | Planificado |
-| MQTT / Home Assistant | Planificado |
-| WebSocket / OTA | Planificado |
+|---|---|
+| Alta por BLE: WiFi, nombre y píxeles | Implementada en app y firmware; requiere validación en placa y teléfono reales |
+| Emparejamiento y características BLE cifradas | Implementados; sin PIN ni protección contra intermediario activo |
+| Control WiFi: encendido, brillo, color, 12 efectos y velocidad | Implementado |
+| Cantidad individual de píxeles, 1–1024 | Guardada en ESP32 y teléfono |
+| Escenas personalizadas | Guardadas en el teléfono |
+| Apagado temporizado | Local en el teléfono; requiere app activa, ligado al controlador original |
+| Controladores ya configurados | Búsqueda mDNS y entrada manual como alternativa |
+| MQTT/Home Assistant | Código de firmware existente; configuración de broker desde la app pendiente |
+| Música, segmentos, horarios en la ESP32 y OTA | Pendientes |
 
-## 🔌 Hardware compatible y cantidad de LED
+Hardware objetivo: **ESP32-WROOM-32 con flash de 4 MB**, datos en GPIO5, WS2812B compatible, orden GRB. El límite de corriente por software de 3 A no sustituye una fuente, cableado y protecciones adecuados. La partición de aplicación de 3 MB permite BLE; esta versión no utiliza OTA.
 
-- **ESP32-WROOM-32** clásico.
-- Tiras **RGB direccionables compatibles con WS2812B y orden GRB**; sin marca, longitud ni cantidad obligatoria.
-- Al agregar la ESP32 en Android se introduce la **cantidad de LED/píxeles direccionables (1–1024)**. Cada controlador tiene su propia cantidad; se puede editar después y se conserva tras reiniciar la ESP32.
-- Si cada chip controla un grupo de LED físicos, cuenta los grupos direccionables. RGBW, tiras analógicas y otros protocolos necesitan otro controlador de firmware; no se promete compatibilidad eléctrica universal.
-- Fuente externa dimensionada según tensión, cantidad y consumo real de la tira. El binario actual usa datos en GPIO 5 y un límite de software de 3000 mA para tiras de 5 V.
-- Conversión de nivel lógico recomendada con **74AHCT125**.
-- **INMP441** I²S opcional para una etapa posterior.
+## Descargas y verificación
 
-⚠️ No alimentes la tira desde la placa ESP32. Consulta [cableado y seguridad](docs/HARDWARE.md) antes de conectar componentes.
+En [GitHub Actions](https://github.com/Mortymel/ESP32-RGB-Studio-/actions):
 
-## 🚀 Generar el APK
+- **Android APK** genera `ESP32-RGB-Studio-Android-APK`, con APK, SHA-256, metadatos y dependencias resueltas.
+- **ESP32 Firmware** genera `Mortys-LED-ESP32-Firmware-Web-Flasher`, con imagen fusionada, manifiesto e instalador. El mismo contenido se publica en Pages.
 
-1. Abre [GitHub Actions — Android APK](https://github.com/Mortymel/ESP32-RGB-Studio-/actions/workflows/android-apk.yml).
-2. Selecciona **Run workflow** en la rama `main`.
-3. Espera a que la ejecución termine **en verde**.
-4. Descarga el artefacto `ESP32-RGB-Studio-Android-APK` y extrae `app-release.apk`.
+Las compilaciones comprueban pruebas Dart, estructura y firma del APK, versión, pruebas C++ con sanitizadores y correspondencia de offsets de la imagen ESP32. La firma actual es la de desarrollo generada por Flutter: todavía no existe una clave de publicación estable. Una actualización sobre otro APK puede exigir desinstalar la app anterior, lo que borra sus datos locales.
 
-No se considera compilación verificada hasta que una ejecución termine correctamente. [Guía detallada](docs/INSTALACION.md).
+## Seguridad y validación
 
-## 🛠️ Desarrollo local
+No se crea el antiguo punto de acceso WiFi abierto. Las credenciales viajan en una conexión BLE cifrada y no se guardan en las preferencias del teléfono. Se conservan en NVS de la ESP32, que no está cifrada en esta configuración. El emparejamiento sin PIN no acredita por sí solo posesión física de la placa. Configura cerca de la ESP32 en un entorno de confianza.
 
-```bash
-git clone https://github.com/Mortymel/ESP32-RGB-Studio-.git
-cd ESP32-RGB-Studio-
-flutter create --platforms=android --project-name esp32_rgb_studio .
-python3 scripts/configure_android.py
-flutter pub get
-flutter run
-```
+El HTTP local y el MQTT opcional no tienen TLS ni autenticación propia del controlador. Utiliza una red privada, sin exponer puertos a Internet. Esta versión no se declara preparada para producción ni validada físicamente.
 
-Requiere Flutter y Android SDK.
-
-## 📚 Documentación
-
-| Guía | Contenido |
-| --- | --- |
-| [Instalación](docs/INSTALACION.md) | Compilación CI, APK y conexión |
-| [Arquitectura](docs/ARQUITECTURA.md) | Componentes y flujos de comunicación |
-| [Hardware](docs/HARDWARE.md) | Materiales, cableado y seguridad |
-| [API HTTP](docs/API.md) | Contrato esperado por Flutter |
-| [Hoja de ruta](docs/ROADMAP.md) | Fases, tareas y criterios 1.0 |
-| [Solución de problemas](docs/SOLUCION-DE-PROBLEMAS.md) | Diagnóstico de build, red y BLE |
-| [Investigación UX](docs/INVESTIGACION-UX.md) | Referentes WLED, Govee y Hue; prioridades |
-| [Contribuir](CONTRIBUTING.md) | Convenciones y propuestas |
-| [Seguridad](SECURITY.md) | Limitaciones y reporte responsable |
-
-## 🧱 Organización del repositorio
-
-```text
-.github/workflows/android-apk.yml   CI Android
-lib/main.dart                       Interfaz Flutter
-lib/device_api.dart                 Cliente HTTP
-lib/ble_provisioning.dart           Descubrimiento BLE experimental
-scripts/configure_android.py        Permisos Android
-docs/                               Documentación técnica
-```
-
-## 🔐 Seguridad
-
-La API HTTP local no tiene autenticación ni TLS en el cliente actual. **No publiques puertos de la ESP32 hacia Internet** ni utilices la aplicación en entornos críticos. No almacenes contraseñas ni claves de firma en el repositorio.
-
-## 🗺️ Próximos hitos
-
-El primer objetivo es **obtener un APK reproducible y probarlo con firmware ESP32 real**. Después se priorizarán la estabilidad del control LED, el aprovisionamiento BLE seguro y las integraciones avanzadas. Consulta el [roadmap](docs/ROADMAP.md).
-
----
-
-**ESP32 RGB Studio** · Prototipo personal de controlador RGB · Documentación en español.
-
-**Licencia:** aún no se ha elegido una licencia de distribución; no se presupone autorización de redistribución.
-
+Documentación: [Bluetooth y protocolo](docs/BLUETOOTH.md), [instalación](docs/INSTALACION.md), [auditoría](docs/AUDITORIA.md), [arquitectura](docs/ARQUITECTURA.md), [API](docs/API.md), [hardware](docs/HARDWARE.md), [firmware](firmware/README.md).

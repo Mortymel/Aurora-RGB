@@ -1,47 +1,20 @@
-# Arquitectura de ESP32 RGB Studio
+# Arquitectura — 0.8.0
 
-## Visión general
+`App Android → BLE cifrado → ESP32 → WiFi de 2,4 GHz → HTTP local → control LED`
 
-```text
-┌────────────────────────────┐      WiFi / HTTP       ┌─────────────────────┐
-│ Aplicación Flutter Android │ ─────────────────────► │ ESP32-WROOM-32      │
-│ • Estado y controles       │ ◄───────────────────── │ • Firmware RGB v0.1 │
-│ • Descubrimiento BLE       │                        │ • GPIO de datos LED │
-└────────────────────────────┘                        └─────────┬───────────┘
-                                                                │ Datos 5 V
-                                                        ┌───────▼──────────┐
-                                                        │ RGB direccionable│
-                                                        │ 1–1024 píxeles   │
-                                                        └──────────────────┘
-```
+- `lib/add_device_wizard.dart`: interfaz del alta BLE, formulario, errores, cancelación y confirmación.
+- `lib/ble_provisioning.dart`: permisos por SDK, escaneo por servicio, emparejamiento, escritura fragmentada y consulta de estado.
+- `lib/provisioning_protocol.dart`: contrato, límites y validación de la respuesta; sin guardar la contraseña en el modelo persistente.
+- `lib/lan_device_wizard.dart`: alternativa para placas ya conectadas al WiFi, con mDNS o entrada manual.
+- `lib/main.dart`: controladores, estado, escenas y temporizador local ligado a su controlador original.
+- `firmware/src/provisioning.h`: GATT y máquina de estados no bloqueante; cola entre callback BLE y bucle principal. Los cambios WiFi, FastLED y NVS se realizan en el bucle principal.
+- `firmware/src/provisioning_validation.h`: validación y ensamblado de bytes compartidos con pruebas C++ de escritorio.
+- `firmware/src/main.cpp`: HTTP, FastLED, efectos, persistencia y MQTT opcional existente.
 
-**Estado real:** Android y firmware ESP32 se incluyen en este repositorio. La cantidad se configura por controlador desde Android y se guarda en la ESP32. El dibujo no certifica pruebas físicas ni compatibilidad con todos los protocolos LED.
+La placa solo guarda la configuración nueva después de obtener conexión. Una entrada NVS agrupa SSID, contraseña, nombre y píxeles; futuras modificaciones de longitud sincronizan esa entrada. El resto del estado LED permanece en preferencias. Identidad basada en los 48 bits de la MAC, no únicamente en un prefijo compartido.
 
-## Componentes de software
+Las preferencias del teléfono contienen identidad, IP, nombre y píxeles; nunca la contraseña del WiFi. La IP es la asignada por DHCP: si cambia, se requiere redescubrimiento por WiFi o edición. No existe conexión a nube.
 
-- `lib/main.dart`: interfaz, conexión al dispositivo, controles y estado.
-- `lib/device_api.dart`: cliente HTTP, estructura de estado y comandos.
-- `lib/ble_provisioning.dart`: búsqueda experimental de periféricos cuyo nombre comienza por `RGBStudio`; no escribe credenciales.
-- `scripts/configure_android.py`: permisos y HTTP local en Android.
-- `.github/workflows/android-apk.yml`: análisis y construcción del APK.
+El temporizador se ejecuta en el teléfono: no sobrevive al cierre del proceso ni debe interpretarse como horario persistente de firmware. El modo música, segmentos y OTA no están implementados. La app no configura aún el broker MQTT.
 
-## Flujo de control actual
-
-1. El usuario introduce nombre, IP y cantidad de píxeles de cada ESP32 en la misma red.
-2. Flutter consulta `GET /api/state`.
-3. Aplica la cantidad guardada cuando difiere, comprueba la respuesta y representa el estado recibido.
-4. El usuario modifica brillo, color, efecto, velocidad o encendido.
-5. Flutter envía `POST /api/control` con campos de formulario.
-6. Se vuelve a consultar el estado aproximadamente cada 3 segundos.
-
-## Límites actuales
-
-- La comunicación HTTP local no cifra ni autentica las peticiones. **No exponer la API a Internet**.
-- Los nombres, números de efectos y campos HTTP dependen del firmware real: comprobar compatibilidad antes de usar.
-- No hay reconexión avanzada, descubrimiento mDNS, emparejamiento seguro ni OTA desde la app.
-- BLE es descubrimiento experimental, no aprovisionamiento WiFi.
-- No hay implementación completa de audio, MQTT, segmentos ni WebSocket en este repositorio.
-
-## Diseño futuro propuesto
-
-Separar `presentation/`, `domain/`, `data/` y `services/`; agregar estado reactivo, modelo de capacidades del dispositivo, autenticación local opcional y pruebas de contrato API. El firmware deberá publicar su versión y capacidades para que la aplicación oculte funciones no soportadas.
+Las pruebas de widgets utilizan un transporte BLE sustituible para reproducir éxito, error y respuestas tardías. Estas pruebas no simulan radio, pila Bluetooth de Android, consumo real de RAM ni temporización física de la tira. Ver [auditoría](AUDITORIA.md).

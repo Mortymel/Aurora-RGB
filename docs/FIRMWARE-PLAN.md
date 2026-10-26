@@ -1,3 +1,5 @@
+> Documento de planificación histórica. El estado vigente de la versión 0.8.0 está en [README](../README.md), [Bluetooth](BLUETOOTH.md) y [auditoría](AUDITORIA.md). El alta BLE ya está implementada; autenticación por prueba de posesión y validación física siguen pendientes.
+
 # Siguiente paso: firmware ESP32 v0.2
 
 ## Objetivo
@@ -69,3 +71,4 @@ docs/
 ```
 
 El firmware y las instrucciones de compilación y flasheo están en `firmware/`. La validación física sigue pendiente.
+

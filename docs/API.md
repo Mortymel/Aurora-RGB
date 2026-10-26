@@ -1,3 +1,5 @@
+> Firmware 0.8.0: alta WiFi/nombre/píxeles por [Bluetooth GATT v1](BLUETOOTH.md). HTTP local se usa después del alta; ya no existe `/setup`. `/api/control` rechaza valores fuera de rango o con tipos incorrectos antes de aplicar cambios. Rango: píxeles 1–1024, brillo 0–255, velocidad 1–255, efecto 0–11, color RGB 0–0xFFFFFF. El endpoint no tiene autenticación/TLS y requiere red privada.
+
 # Contrato HTTP de referencia (v0.1)
 
 > Implementado en `firmware/src/main.cpp`. La cantidad se configura por controlador desde Android y se conserva en NVS.
@@ -55,3 +57,4 @@ Android guarda la cantidad por controlador y la aplica al conectar cuando difier
 - Usar exclusivamente en una red local confiable; no abrir puertos del router hacia la ESP32.
 - Se recomienda versionar el contrato (por ejemplo, `/api/version`) y añadir errores JSON consistentes.
 - Los nombres de efectos de la app son ilustrativos hasta verificar su correspondencia con el firmware.
+

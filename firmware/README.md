@@ -1,48 +1,25 @@
-# Firmware Morty's LED 0.3.0-dev
+# Firmware ESP32-WROOM-32 — 0.8.0
 
-## Estado
+Objetivo: ESP32 clásico con flash de 4 MB; FastLED, WS2812B compatible, orden GRB, GPIO5, 1–1024 píxeles. Revisa [hardware](../docs/HARDWARE.md) antes de conectar la tira. El límite de corriente por software no protege contra errores de cableado o fuente.
 
-Firmware para ESP32-WROOM-32 clásico con 12 efectos, cantidad de píxeles configurable, brillo y velocidad, HTTP compatible con la app, conexión WiFi por AP inicial y MQTT opcional. La compilación se comprueba en CI; las pruebas físicas con cada tira siguen siendo necesarias.
+## Compilación
 
-## Hardware
-
-El binario admite tiras RGB compatibles con **WS2812B / GRB**, datos en **GPIO 5** y fuente de 5 V independiente. No exige marca ni longitud. En Android, al añadir o editar cada ESP32, indica **1–1024 píxeles direccionables**. La app envía `pixels` al conectar; el firmware lo guarda en NVS y lo usa en todos los efectos. El primer arranque sin configuración usa un único píxel. Las configuraciones anteriores se conservan.
-
-Si la tira agrupa LED, introduce grupos direccionables, no diodos físicos. Otros órdenes de color, protocolos, RGBW o tiras analógicas requieren adaptar el controlador; modificar solo la cantidad no cambia la compatibilidad eléctrica. `LED_MAX_PIXELS` limita memoria y rango; `LED_PIN` y el tipo de LED se cambian al compilar si el hardware lo requiere.
-
-## Compilar
-
-```bash
-python -m pip install platformio
+```sh
 pio run -d firmware
 ```
 
-En GitHub Actions, el workflow **ESP32 Firmware** compila y empaqueta un instalador web. El artefacto contiene `firmware.bin`, `index.html` y `manifest.json`. La página solo funciona como flasheador si se sirve por **HTTPS** junto con el binario. Descargar el ZIP y abrir `index.html` con `file://` no sirve.
+La plataforma `espressif32@6.9.0` utiliza Arduino ESP32 2.0.17. FastLED 3.7.8, ArduinoJson 7.3.0 y PubSubClient 2.8 están fijados. BLE utiliza la biblioteca incluida por Arduino. Se emplea `huge_app.csv` (aplicación de 3 MB), sin OTA. No cambies la tabla de particiones sin volver a instalar la imagen completa.
 
-## Primer arranque
+El workflow compila, comprueba el protocolo con C++/ASan/UBSan, fusiona bootloader en `0x1000`, particiones en `0x8000` y aplicación en `0x10000`. El `firmware.bin` del instalador web es una imagen fusionada que se escribe desde **offset 0**. No confundas esa imagen con la aplicación individual de PlatformIO.
 
-Si no hay WiFi guardado o no conecta, la ESP32 crea un punto de acceso `MortysLED-<ID>` sin contraseña. Conéctate temporalmente y abre `http://192.168.4.1/setup` para indicar SSID y clave. El firmware guarda esos datos en NVS y reinicia. **Este mecanismo es solo para desarrollo**: no hay autenticación, cifrado de credenciales en tránsito ni bloqueo de intentos.
+## Alta y recuperación
 
-## API
+Sin credenciales guardadas anuncia BLE `MortysLED-…` durante 10 minutos. Android envía SSID, contraseña, nombre y píxeles por características cifradas. Se comprueba WiFi hasta 25 segundos antes de guardar una configuración nueva en NVS. BOOT durante 3 segundos después del arranque reabre la configuración, sin borrar la anterior. Tras éxito se permite leer la confirmación durante un minuto.
 
-- `GET /api/state`
-- `POST /api/control` con campos `power`, `brightness` (0–255), `speed` (1–255), `effect` (0–11), `color` (0xRRGGBB), `pixels` (entero 1–1024; inválidos reciben HTTP 400)
-- `GET /api/info`
-- `GET /api/effects`
-- `GET /api/health`
+Una placa ya configurada reintenta su WiFi guardado; una caída del router no abre de nuevo la configuración. No se crea un AP abierto. El protocolo está documentado en [BLUETOOTH.md](../docs/BLUETOOTH.md).
 
-## Efectos
+HTTP ofrece `/api/state`, `/api/control`, `/api/info`, `/api/effects` y `/api/health`. MQTT opcional conserva el código de conexión a un broker configurado en NVS; la app no ofrece todavía ese alta. No hay música, segmentos ni programación persistente.
 
-0 Fijo · 1 Arcoíris · 2 Respirar · 3 Cometa · 4 Chispas · 5 Fuego · 6 Olas · 7 Barrido · 8 Pulso · 9 Confeti · 10 Meteoros · 11 Gradiente.
+## Límites de seguridad y validación
 
-## MQTT / Home Assistant
-
-El cliente MQTT y Discovery están implementados en código, pero quedan **desactivados** si no hay `mqtt_host` en NVS. Aún falta un canal seguro para configurar el broker y credenciales. No hay formulario MQTT funcional en la app. Consulta `docs/MQTT-HOME-ASSISTANT.md`.
-
-## Seguridad
-
-El firmware no tiene autenticación HTTP, OTA segura ni aprovisionamiento protegido. No abrir puertos al exterior. No utilizar el AP abierto de instalación en entornos no confiables.
-
-## Antes de conectar LEDs
-
-Verificar fuente 5 V, tierra común, adaptador lógico 3,3→5 V, fusible y corriente máxima. El límite de software es 3000 mA, pero no reemplaza las protecciones físicas.
+BLE usa Secure Connections Just Works, sin PIN ni prueba de posesión. La configuración NVS no tiene cifrado en reposo. HTTP local carece de autenticación/TLS; no debe publicarse en Internet. La compilación no verifica físicamente alimentación, señal de datos, memoria dinámica de BLE, emparejamiento Android ni persistencia ante un corte real de corriente. Ver [auditoría](../docs/AUDITORIA.md).

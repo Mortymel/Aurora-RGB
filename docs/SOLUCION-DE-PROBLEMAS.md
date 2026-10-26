@@ -1,30 +1,18 @@
-# Solución de problemas
+# Solución de problemas — 0.8.0
 
-## GitHub Actions falla en «Analyze Dart code»
+| Síntoma | Comprobación |
+|---|---|
+| No aparece la ESP32 por Bluetooth | Firmware 0.8.0 instalado, placa encendida, teléfono cerca; BOOT 3 segundos después del arranque para reabrir los 10 minutos |
+| No aparece el permiso | Android 12+: Dispositivos cercanos; Android 11 o anterior: ubicación concedida y activada |
+| Emparejamiento falla tras reflashear | Elimina el vínculo Bluetooth anterior en Android y vuelve a buscar |
+| WiFi no conecta | SSID y contraseña exactos, red de 2,4 GHz; no se admiten EAP ni PSK hexadecimal de 64 caracteres |
+| Configuración cancelada, pero placa conectada | Puede haber completado el comando ya enviado; utiliza Ya está conectada al WiFi |
+| La app añadió la tira pero no responde | Teléfono en la misma red, sin aislamiento de clientes ni VPN que bloquee la LAN; comprueba IP actual |
+| Cambió el router o la contraseña | BOOT 3 segundos después del arranque y repite el alta; una contraseña fallida no borra la anterior |
+| Cantidad incorrecta de LED | Cuenta píxeles direccionables/grupos, no necesariamente encapsulados; rango 1–1024 |
+| Android rechaza instalar una actualización | La firma de desarrollo puede diferir de la anterior. Desinstalar borra los datos locales de la app; no los de la ESP32 |
+| Temporizador no actúa tras cerrar la app | Es un temporizador del teléfono; requiere mantener el proceso activo |
 
-El workflow genera archivos de plataforma Android mediante `flutter create`. Si se genera `test/widget_test.dart` de ejemplo, este puede referirse a una clase `MyApp` inexistente. La configuración de CI actual elimina ese archivo y declara dependencias de pruebas y lint.
+La ESP32 configurada no abre automáticamente Bluetooth por una caída del router; utiliza BOOT si necesitas cambiar la red. Ya no existe el antiguo punto de acceso abierto ni la ruta de configuración `/setup`.
 
-Abrir el trabajo fallido y consultar la **primera línea con `error •`**. No confundir avisos de paquetes desactualizados con errores de compilación.
-
-## GitHub Actions falla en «Build release APK»
-
-Leer el primer error de Gradle o Dart. Comprobar versiones de Flutter, Java, plugins y permisos Android. No descargar ni instalar artefactos de una ejecución roja.
-
-## El móvil no encuentra la ESP32
-
-- Comprobar que la ESP32 está encendida y el firmware ofrece HTTP.
-- Verificar que móvil y ESP32 estén en la misma red/subred, sin aislamiento de clientes.
-- Usar la IP local correcta; `192.168.4.1` solo aplica si el dispositivo ofrece un AP con esa dirección.
-- Revisar el puerto y el endpoint `/api/state`.
-
-## La app conecta, pero los efectos no coinciden
-
-Los identificadores numéricos de efectos y el formato del color necesitan coincidir con el firmware. Revisar [API.md](API.md).
-
-## Bluetooth no configura WiFi
-
-Comportamiento esperado en esta versión: únicamente hay descubrimiento experimental. No enviar contraseñas a servicios GATT sin protocolo autenticado.
-
-## La tira parpadea o muestra colores erróneos
-
-Desconectar alimentación antes de modificar conexiones. Revisar tierra común, nivel lógico, caída de tensión, orden RGB y protocolo real de la tira. Consultar [HARDWARE.md](HARDWARE.md).
+Las ejecuciones correctas deben tener pruebas, compilación y verificación de artefactos aprobadas. Un archivo de un run anterior no confirma que el firmware/app nuevos se hayan generado. Consulta el SHA de cada ejecución.

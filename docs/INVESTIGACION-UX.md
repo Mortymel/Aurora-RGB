@@ -1,3 +1,5 @@
+> Documento de planificación histórica. El estado vigente de la versión 0.8.0 está en [README](../README.md), [Bluetooth](BLUETOOTH.md) y [auditoría](AUDITORIA.md). El alta BLE ya está implementada; autenticación por prueba de posesión y validación física siguen pendientes.
+
 # Investigación de interfaces LED y criterios de producto
 
 Fecha de referencia: octubre de 2026. Investigación de funciones públicas, **no** copia de diseños, marcas, recursos gráficos ni código propietario.
@@ -57,3 +59,4 @@ Patrones útiles: navegación por habitaciones y zonas, escenas por ambiente, ru
 5. Automatizaciones persistentes, BLE seguro y música.
 
 Los patrones funcionales se inspiran en productos existentes; los componentes visuales y el código de ESP32 RGB Studio son originales.
+

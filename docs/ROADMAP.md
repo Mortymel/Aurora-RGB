@@ -1,3 +1,5 @@
+> Documento de planificación histórica. El estado vigente de la versión 0.8.0 está en [README](../README.md), [Bluetooth](BLUETOOTH.md) y [auditoría](AUDITORIA.md). El alta BLE ya está implementada; autenticación por prueba de posesión y validación física siguen pendientes.
+
 # Hoja de ruta
 
 Este documento distingue trabajo publicado, trabajo sin validar y funciones futuras. No representa promesas de fecha.
@@ -56,3 +58,4 @@ Este documento distingue trabajo publicado, trabajo sin validar y funciones futu
 ## Criterios de versión 1.0
 
 APK reproducible, firmware público o disponible para instalación, API documentada y probada, hardware validado, guía de recuperación, pruebas automáticas y una política clara de seguridad y versiones.
+

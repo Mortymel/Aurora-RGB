@@ -1,43 +1,17 @@
-# Instalación y compilación Android
+# Instalación — 0.8.0
 
-## APK mediante GitHub Actions
+1. Comprueba placa ESP32-WROOM-32, flash de 4 MB y tira compatible con WS2812B/GRB. Desconecta la tira durante el flasheo.
+2. Abre https://mortymel.github.io/ESP32-RGB-Studio-/ desde Chrome o Edge de escritorio y conecta USB con un cable de datos. Instala firmware 0.8.0; si borras la flash se pierden los datos anteriores.
+3. Descarga el artefacto Android APK de la ejecución exitosa para 0.8.0+9. Descomprime e instala `app-release.apk`.
+4. Abre **Añadir tira → Buscar por Bluetooth**, selecciona `MortysLED-…` y completa WiFi de **2,4 GHz**, contraseña, nombre y cantidad de píxeles. Acepta el emparejamiento Bluetooth de Android.
+5. Espera confirmación. La app añade la IP devuelta por la placa. Para controlarla, el teléfono debe estar en la misma red WiFi.
 
-1. Abrir la pestaña **Actions** del repositorio.
-2. Elegir **Android APK**.
-3. Pulsar **Run workflow** (rama `main`).
-4. Esperar a que la ejecución termine en verde.
-5. En la página de esa ejecución, descargar el artefacto **ESP32-RGB-Studio-Android-APK**.
-6. Descomprimir el artefacto y transferir `app-release.apk` al móvil Android.
-7. Instalar el APK autorizando, si es necesario, la instalación desde esa fuente.
+No necesitas escribir una IP para dar de alta una ESP32 nueva. **Ya está conectada al WiFi** permite recuperar una placa ya configurada mediante mDNS o entrada manual.
 
-**Aviso:** mientras la ejecución no termine correctamente, no hay APK verificado. El APK de CI usa la firma de depuración/release predeterminada del entorno Flutter; **no** es una distribución firmada para Play Store. La firma de producción requerirá un keystore gestionado como secreto.
+BOOT pulsado 3 segundos después del arranque reabre el modo Bluetooth durante 10 minutos. No hace falta borrar ni reflashear para cambiar de router. No mantengas BOOT mientras conectas la alimentación: ese gesto puede activar el cargador de arranque.
 
-## Desarrollo local
+Solo una contraseña validada por conexión se guarda. Ante error se mantienen las credenciales anteriores. La app anterior y el firmware anterior no soportan el protocolo de alta 0.8.0: actualiza ambos.
 
-Requisitos: Flutter estable, Android SDK y dispositivo/emulador Android.
+El APK utiliza firma de desarrollo; si Android muestra conflicto de firma, puede ser necesario desinstalar la versión anterior. Esto borra controladores y escenas guardados en el teléfono. La ESP32 conserva su configuración y puede volver a añadirse por WiFi.
 
-```bash
-git clone https://github.com/Mortymel/ESP32-RGB-Studio-.git
-cd ESP32-RGB-Studio-
-flutter create --platforms=android --project-name esp32_rgb_studio .
-python3 scripts/configure_android.py
-flutter pub get
-flutter analyze --no-fatal-infos
-flutter run
-```
-
-La orden `flutter create` genera la carpeta `android/` durante el build. El proyecto conserva deliberadamente la configuración Android como script para facilitar las pruebas iniciales.
-
-## Conectar la ESP32
-
-1. Alimentar correctamente la ESP32 y la tira.
-2. Conectar el móvil a la misma red WiFi que la ESP32.
-3. En Android, abrir **Dispositivos → Añadir**, introducir nombre, IP local y **Cantidad de LED / píxeles** (1–1024).
-4. Pulsar **Guardar controlador**. La app conecta, aplica la cantidad y comprueba la respuesta. Se puede cambiar en **Editar controlador**; si está desconectado, se aplicará al reconectar.
-5. Si el firmware implementa los endpoints compatibles, aparecerá el estado y los controles.
-
-La IP `192.168.4.1` es un valor inicial orientativo para modo punto de acceso; no implica que el firmware actual active ese modo.
-
-## Bluetooth
-
-El botón Bluetooth intenta buscar dispositivos anunciados como `RGBStudio...`. La app **no puede configurar el WiFi por BLE todavía**: esa función necesita firmware nuevo, protocolo de características GATT y medidas de seguridad.
+Consulta [Bluetooth](BLUETOOTH.md), [hardware](HARDWARE.md) y [auditoría](AUDITORIA.md) para límites y validación pendiente.
