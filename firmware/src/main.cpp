@@ -96,6 +96,27 @@ int effectIndex(const String &name) {
   return -1;
 }
 bool applyControl(JsonVariantConst data) {
+  if (!data.is<JsonObjectConst>()) return false;
+  const JsonObjectConst object = data.as<JsonObjectConst>();
+  auto has = [&](const char* key) { return object.containsKey(key); };
+  for (const char* key : {"brightness", "speed", "effect"}) {
+    if (!has(key)) continue;
+    if (strcmp(key, "effect") == 0 && data[key].is<const char*>()) {
+      if (effectIndex(data[key].as<String>()) < 0) return false;
+    } else {
+      const int low = strcmp(key, "speed") == 0 ? 1 : 0;
+      const int high = strcmp(key, "effect") == 0 ? EFFECT_COUNT - 1 : 255;
+      if (!data[key].is<int>() || data[key].as<int>() < low || data[key].as<int>() > high) return false;
+    }
+  }
+  if (has("power") && !data["power"].is<bool>()) return false;
+  if (has("state") && (!data["state"].is<const char*>() ||
+      (!String(data["state"].as<const char*>()).equalsIgnoreCase("ON") && !String(data["state"].as<const char*>()).equalsIgnoreCase("OFF")))) return false;
+  if (has("color")) {
+    if (data["color"].is<JsonObjectConst>()) {
+      for (const char* key : {"r", "g", "b"}) if (!data["color"][key].is<int>() || data["color"][key].as<int>() < 0 || data["color"][key].as<int>() > 255) return false;
+    } else if (!data["color"].is<uint32_t>() || data["color"].as<uint32_t>() > 0xFFFFFF) return false;
+  }
   // Validate before applying anything: never silently clamp a hardware setting.
   if (data.as<JsonObjectConst>().containsKey("pixels")) {
     if (!data["pixels"].is<int>() || data["pixels"].as<int>()<1 || data["pixels"].as<int>()>LED_MAX_PIXELS) return false;
@@ -128,19 +149,32 @@ bool applyControl(JsonVariantConst data) {
 }
 void handleControl() {
   JsonDocument doc;
+  if (server.hasArg("plain") && server.arg("plain").length() > 512) { respondJson("{\"error\":\"request_too_large\"}",413); return; }
   if (server.hasArg("plain") && server.header("Content-Type").startsWith("application/json")) {
     if (deserializeJson(doc,server.arg("plain"))) {respondJson("{\"error\":\"invalid_json\"}",400);return;}
   } else {
     for(int i=0;i<server.args();i++){
       String k=server.argName(i),v=server.arg(i);
-      if(k=="power") doc[k]=(v=="true"||v=="1");
+      if(k=="power") {
+        if (v!="true" && v!="false" && v!="1" && v!="0") {respondJson("{\"error\":\"invalid_power\"}",400);return;}
+        doc[k]=(v=="true"||v=="1");
+      }
       else if(k=="pixels") {
         if(v.isEmpty()||v.length()>4){respondJson("{\"error\":\"invalid_pixels\",\"min\":1,\"max\":1024}",400);return;}
         for(unsigned int j=0;j<v.length();j++)if(v[j]<'0'||v[j]>'9'){respondJson("{\"error\":\"invalid_pixels\"}",400);return;}
         doc[k]=v.toInt();
       }
-      else if(k=="color") doc[k]=(uint32_t)strtoul(v.c_str(),nullptr,0);
-      else if(k=="brightness"||k=="effect"||k=="speed") doc[k]=v.toInt();
+      else if(k=="color") {
+        char* end = nullptr;
+        unsigned long value = strtoul(v.c_str(), &end, v.startsWith("0x") ? 16 : 10);
+        if (v.isEmpty() || end == v.c_str() || *end || value > 0xFFFFFF) {respondJson("{\"error\":\"invalid_color\"}",400);return;}
+        doc[k]=(uint32_t)value;
+      }
+      else if(k=="brightness"||k=="effect"||k=="speed") {
+        if(v.isEmpty()||v.length()>3){respondJson("{\"error\":\"invalid_control\"}",400);return;}
+        for(unsigned int j=0;j<v.length();j++)if(v[j]<'0'||v[j]>'9'){respondJson("{\"error\":\"invalid_control\"}",400);return;}
+        doc[k]=v.toInt();
+      }
     }
   }
   if(!applyControl(doc.as<JsonVariantConst>())){respondJson("{\"error\":\"invalid_pixels\",\"min\":1,\"max\":1024}",400);return;}
@@ -158,7 +192,7 @@ void handleInfo() {
   doc["color_order"]="GRB";
   doc["ip"]=WiFi.localIP().toString();
   JsonArray caps=doc["capabilities"].to<JsonArray>();
-  caps.add("power");caps.add("brightness");caps.add("rgb");caps.add("speed");caps.add("effects");caps.add("mqtt");
+  caps.add("ble_provisioning_v1");caps.add("power");caps.add("brightness");caps.add("rgb");caps.add("speed");caps.add("effects");caps.add("mqtt");
   String out;serializeJson(doc,out);respondJson(out);
 }
 void handleEffects() {
@@ -248,8 +282,8 @@ void setup() {
   deviceId=String((uint32_t)(ESP.getEfuseMac()&0xFFFFFF),HEX);
   deviceName=prefs.getString("name","Morty's LED");
   JsonDocument setupDoc;
-  String setupBlob = prefs.getString("setup", "");
-  if (!setupBlob.isEmpty() && !deserializeJson(setupDoc, setupBlob)) {
+  const bool hasSavedSetup = loadSavedSetup(setupDoc);
+  if (hasSavedSetup) {
     deviceName = setupDoc["name"].as<String>();
     pixelCount = constrain(setupDoc["pixels"].as<int>(), 1, LED_MAX_PIXELS);
   }
@@ -264,7 +298,7 @@ void setup() {
   WiFi.persistent(false); // Candidate credentials stay in RAM until our atomic NVS commit.
   WiFi.mode(WIFI_STA);
   String ssid=prefs.getString("ssid",""),pass=prefs.getString("pass","");
-  if (!setupDoc.isNull()) { ssid = setupDoc["ssid"].as<String>(); pass = setupDoc["password"].as<String>(); }
+  if (hasSavedSetup) { ssid = setupDoc["ssid"].as<String>(); pass = setupDoc["password"].as<String>(); }
   WiFi.setAutoReconnect(true);
   if (!ssid.isEmpty()) {
     WiFi.begin(ssid.c_str(), pass.c_str());

@@ -121,11 +121,19 @@ void startProvisioning() {
   BLEDevice::startAdvertising();
   Serial.println("Bluetooth setup open for 10 minutes. Hold BOOT 3 seconds to reopen.");
 }
+bool loadSavedSetup(JsonDocument& doc) {
+  String blob = prefs.getString("setup", "");
+  if (blob.isEmpty() || deserializeJson(doc, blob)) { doc.clear(); return false; }
+  JsonString ssid = doc["ssid"].as<JsonString>(), password = doc["password"].as<JsonString>(), name = doc["name"].as<JsonString>();
+  if (!doc["pixels"].is<int>() || !validSetupFields(ssid.c_str(), ssid.size(), password.c_str(), password.size(), name.c_str(), name.size(), doc["pixels"].as<int>())) {
+    doc.clear(); return false;
+  }
+  return true;
+}
 void restoreWifi() {
   String ssid = prefs.getString("ssid", ""), password = prefs.getString("pass", "");
-  String saved = prefs.getString("setup", "");
   JsonDocument doc;
-  if (!saved.isEmpty() && !deserializeJson(doc, saved)) {
+  if (loadSavedSetup(doc)) {
     ssid = doc["ssid"].as<String>(); password = doc["password"].as<String>();
   }
   WiFi.disconnect();
@@ -144,7 +152,7 @@ void handleProvisioning() {
   if (!setupOpen) return;
   if (setupDisconnected) {
     setupDisconnected = false;
-    if (!setupSucceeded) BLEDevice::startAdvertising();
+    if (!setupSucceeded && millis() - setupOpenedAt < SETUP_WINDOW_MS) BLEDevice::startAdvertising();
   }
   SetupCommand command = {};
   if (setupQueue && xQueueReceive(setupQueue, &command, 0) == pdTRUE && !setupConnecting && !setupSucceeded) {

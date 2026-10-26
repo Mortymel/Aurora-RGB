@@ -228,13 +228,22 @@ class _StudioShellState extends State<StudioShell>{
   ]);
   Future<void> scanBle() => addDeviceWizard();
   void startNightlight(int minutes){
+    final target = api;
+    if (target == null) { notice('Conecta una ESP32 antes de programar el apagado'); return; }
+    final targetName = deviceName;
     nightTimer?.cancel();nightEnd=DateTime.now().add(Duration(minutes:minutes));
-    nightTimer=Timer(Duration(minutes:minutes),(){send({'power':'false'});if(mounted)setState(()=>nightEnd=null);});
-    setState((){});notice('Apagado programado en $minutes minutos. Requiere mantener abierta la app.');
+    nightTimer=Timer(Duration(minutes:minutes),() async {
+      try {
+        final result = await target.control({'power':'false'});
+        if (mounted && identical(target, api)) setState(() => state = result);
+      } catch (_) { notice('No se pudo apagar $targetName. Comprueba su conexión.'); }
+      if(mounted)setState(()=>nightEnd=null);
+    });
+    setState((){});notice('Apagado de $targetName en $minutes minutos. Requiere mantener abierta la app.');
   }
   Widget section(String title,{Widget? trailing})=>Padding(padding:const EdgeInsets.fromLTRB(3,20,3,9),child:Row(children:[
     Expanded(child:Text(title,style:const TextStyle(fontSize:20,fontWeight:FontWeight.w700))),
-    if(trailing!=null)trailing]));
+    if(trailing!=null) ...[trailing]]));
   Widget card(Widget child)=>Card(child:Padding(padding:const EdgeInsets.all(17),child:child));
   Widget header()=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     const Text("MORTY'S LED",style:TextStyle(color:violet,letterSpacing:3,fontSize:12,fontWeight:FontWeight.bold)),

@@ -20,7 +20,14 @@ class LedState {
 class DeviceApi {
   final String host;
   const DeviceApi(this.host);
-  Uri get base => Uri.parse(host.startsWith('http') ? host : 'http://$host');
+  Uri get base {
+    final address = host.trim();
+    final uri = Uri.tryParse(address.contains('://') ? address : 'http://$address');
+    if (address.isEmpty || uri == null || uri.host.isEmpty || uri.host.contains(' ') || !['http', 'https'].contains(uri.scheme) || uri.userInfo.isNotEmpty) {
+      throw const FormatException('Dirección de controlador inválida');
+    }
+    return uri;
+  }
   Uri endpoint(String path) => base.replace(path: path);
   Future<LedState> getState() async {
     final response = await http.get(endpoint('/api/state')).timeout(const Duration(seconds: 4));
@@ -33,3 +40,4 @@ class DeviceApi {
     return LedState.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 }
+

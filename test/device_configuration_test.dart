@@ -15,7 +15,7 @@ void main() {
 
   test('Each controller retains its own count; legacy devices have no invented count', () async {
     await DeviceStore.save(const [
-      StudioDevice(id:'a',name:'SalÃ³n',host:'192.168.1.10',pixels:1),
+      StudioDevice(id:'a',name:'Salón',host:'192.168.1.10',pixels:1),
       StudioDevice(id:'b',name:'Pasillo',host:'192.168.1.11',pixels:1024),
     ]);
     final devices=await DeviceStore.load();
@@ -30,7 +30,7 @@ void main() {
       ],
     )));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('120 pÃ­xeles detectados'));
+    await tester.tap(find.text('120 píxeles detectados'));
     await tester.pumpAndSettle();
     final fields = tester.widgetList<TextFormField>(find.byType(TextFormField)).toList();
     expect(fields[1].controller!.text, '192.168.1.20');
@@ -48,8 +48,8 @@ void main() {
     )));
     await tester.pump();
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
-    await tester.ensureVisible(find.text('ConfiguraciÃ³n manual'));
-    await tester.tap(find.text('ConfiguraciÃ³n manual'));
+    await tester.scrollUntilVisible(find.text('Configuración manual'), 200);
+    await tester.tap(find.text('Configuración manual'));
     await tester.pumpAndSettle();
     expect(find.byType(LinearProgressIndicator), findsNothing);
     discovery.complete([
@@ -81,18 +81,21 @@ void main() {
     await http.runWithClient(() async {
       await tester.pumpWidget(StudioApp(discoverControllers: () async => []));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('AÃ±adir tira'));
+      await tester.tap(find.text('Añadir tira'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('ConfiguraciÃ³n manual'));
+      await tester.tap(find.text('Ya está conectada al WiFi'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.widgetWithText(TextFormField,'Nombre de la tira'),'SalÃ³n');
+      await tester.scrollUntilVisible(find.text('Configuración manual'), 200);
+      await tester.tap(find.text('Configuración manual'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextFormField,'Nombre de la tira'),'Salón');
       await tester.enterText(find.byType(TextFormField).at(1),'192.168.1.10');
       for(final invalid in ['', '0', '1025', '2.5', 'abc']) {
         await tester.enterText(find.byType(TextFormField).at(2),invalid);
         await tester.ensureVisible(find.text('Guardar tira'));
         await tester.tap(find.text('Guardar tira'));
         await tester.pumpAndSettle();
-        expect(find.text('Entre 1 y 1024 pÃ­xeles'),findsOneWidget);
+        expect(find.text('Entre 1 y 1024 píxeles'),findsOneWidget);
         expect(posted,isEmpty);
       }
       await tester.enterText(find.byType(TextFormField).at(2),'60');
