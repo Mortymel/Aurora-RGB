@@ -22,8 +22,8 @@ a{color:#83d9bc}.warning{border-left:3px solid #e6b667;padding-left:15px}
 <h1>Instalar firmware</h1>
 <p>Conecta tu ESP32-WROOM-32 por USB para instalar el controlador de tus tiras LED. Diseñado para el mismo estilo de Morty's LED en Android.</p>
 <section class="panel">
-<h2>ESP32-WROOM-32 · XGB1338</h2>
-<p>Firmware experimental · v0.2.0-dev · 12 efectos, brillo y velocidad, control WiFi local y MQTT opcional.</p>
+<h2>ESP32-WROOM-32 · Tiras RGB direccionables</h2>
+<p>Firmware experimental · v0.3.0-dev · Cantidad configurable desde Android: 1–1024 píxeles por controlador. 12 efectos, brillo y velocidad, control WiFi local y MQTT opcional.</p>
 <esp-web-install-button manifest="./manifest.json">
 <button slot="activate">Conectar e instalar</button>
 <span slot="unsupported">Necesitas Chrome o Edge de escritorio con Web Serial.</span>
@@ -34,11 +34,12 @@ a{color:#83d9bc}.warning{border-left:3px solid #e6b667;padding-left:15px}
 <section class="panel">
 <h2>Antes de empezar</h2>
 <ol class="steps">
-<li>Comprueba ESP32-WROOM-32, chip XGB1338 y 320 píxeles; confirma el orden GRB con una prueba de colores.</li>
+<li>Comprueba que la tira RGB utilice un protocolo compatible con WS2812B y orden GRB. La cantidad se introduce al añadir la ESP32 en Android; no hay una longitud fija.</li>
 <li>Desconecta la tira LED durante el flasheo inicial.</li>
 <li>Conecta la placa con un cable USB de datos.</li>
 <li>Abre este instalador desde una web HTTPS con <code>firmware.bin</code> en la misma carpeta.</li>
 <li>Después, conecta al punto de acceso <code>MortysLED-XXXX</code> y abre <code>192.168.4.1/setup</code> para configurar WiFi.</li>
+<li>En Android, pulsa <strong>Añadir controlador</strong>, introduce nombre, IP y cantidad de LED/píxeles. Si tu tira agrupa LED, introduce la cantidad de grupos direccionables. Puedes cambiarla en <strong>Editar controlador</strong>.</li>
 </ol>
 <p class="warning">Prototipo de desarrollo: el punto de acceso inicial no tiene contraseña y el HTTP local no tiene autenticación. No utilizar en redes públicas ni en instalaciones críticas.</p>
 </section>

@@ -7,13 +7,13 @@
 #include <PubSubClient.h>
 
 // Verify LED protocol, pixel grouping, data pin and power supply BEFORE connecting hardware.
-// Target: ESP32-WROOM-32 + BTF-LIGHTING XGB1338 RGBIC 5 V.
+// Target: ESP32-WROOM-32 + addressable RGB strips with WS2812B-compatible timing.
 // Initial WS2812B timing and GRB color order; verify with RGB test before full brightness.
 #ifndef LED_PIN
 #define LED_PIN 5
 #endif
 #ifndef LED_COUNT
-#define LED_COUNT 320
+#define LED_COUNT 1
 #endif
 #ifndef LED_MAX_MILLIAMPS
 #define LED_MAX_MILLIAMPS 3000
@@ -21,7 +21,7 @@
 #ifndef LED_MAX_PIXELS
 #define LED_MAX_PIXELS 1024
 #endif
-#define FW_VERSION "0.2.1-dev"
+#define FW_VERSION "0.3.0-dev"
 #define API_VERSION 1
 
 CRGB leds[LED_MAX_PIXELS];
@@ -86,10 +86,19 @@ int effectIndex(const String &name) {
   for (int i=0;i<EFFECT_COUNT;i++) if (name.equalsIgnoreCase(effectNames[i])) return i;
   return -1;
 }
-void applyControl(JsonVariantConst data) {
+bool applyControl(JsonVariantConst data) {
+  // Validate before applying anything: never silently clamp a hardware setting.
+  if (data.as<JsonObjectConst>().containsKey("pixels")) {
+    if (!data["pixels"].is<int>() || data["pixels"].as<int>()<1 || data["pixels"].as<int>()>LED_MAX_PIXELS) return false;
+    const uint16_t nextCount=data["pixels"].as<int>();
+    if (nextCount!=pixelCount) {
+      FastLED.clear(true); // Clear the previous length before shortening the strip.
+      pixelCount=nextCount;
+      FastLED[0].setLeds(leds,pixelCount);
+    }
+  }
   if (data["power"].is<bool>()) powerOn = data["power"].as<bool>();
   if (data["state"].is<const char*>()) powerOn = String(data["state"].as<const char*>()).equalsIgnoreCase("ON");
-  if (data["pixels"].is<int>()) pixelCount = constrain(data["pixels"].as<int>(),1,LED_MAX_PIXELS);
   if (data["brightness"].is<int>()) brightness = constrain(data["brightness"].as<int>(),0,255);
   if (data["speed"].is<int>()) speed = constrain(data["speed"].as<int>(),1,255);
   if (data["effect"].is<int>()) effect = constrain(data["effect"].as<int>(),0,EFFECT_COUNT-1);
@@ -106,6 +115,7 @@ void applyControl(JsonVariantConst data) {
   persist();
   lastFrame=0;
   publishState();
+  return true;
 }
 void handleControl() {
   JsonDocument doc;
@@ -115,11 +125,16 @@ void handleControl() {
     for(int i=0;i<server.args();i++){
       String k=server.argName(i),v=server.arg(i);
       if(k=="power") doc[k]=(v=="true"||v=="1");
+      else if(k=="pixels") {
+        if(v.isEmpty()||v.length()>4){respondJson("{\"error\":\"invalid_pixels\",\"min\":1,\"max\":1024}",400);return;}
+        for(unsigned int j=0;j<v.length();j++)if(v[j]<'0'||v[j]>'9'){respondJson("{\"error\":\"invalid_pixels\"}",400);return;}
+        doc[k]=v.toInt();
+      }
       else if(k=="color") doc[k]=(uint32_t)strtoul(v.c_str(),nullptr,0);
       else if(k=="brightness"||k=="effect"||k=="speed") doc[k]=v.toInt();
     }
   }
-  applyControl(doc.as<JsonVariantConst>());
+  if(!applyControl(doc.as<JsonVariantConst>())){respondJson("{\"error\":\"invalid_pixels\",\"min\":1,\"max\":1024}",400);return;}
   respondJson(jsonState());
 }
 void handleInfo() {
@@ -130,7 +145,6 @@ void handleInfo() {
   doc["api_version"]=API_VERSION;
   doc["pixels"]=pixelCount;
   doc["max_pixels"]=LED_MAX_PIXELS;
-  doc["led_chip"]="XGB1338";
   doc["led_protocol"]="WS2812B-compatible";
   doc["color_order"]="GRB";
   doc["ip"]=WiFi.localIP().toString();
@@ -212,7 +226,7 @@ void render() {
     case 7: fill_solid(leds,pixelCount,CRGB::Black);for(int i=0;i<pixelCount;i++)if(i<=phase%pixelCount)leds[i]=base;break;
     case 8: fill_solid(leds,pixelCount,base);nscale8_video(leds,pixelCount,quadwave8(t));break;
     case 9: fadeToBlackBy(leds,pixelCount,20);if(random8()<75)leds[random16(pixelCount)]=CHSV(random8(),200,255);break;
-    case 10: fadeToBlackBy(leds,pixelCount,40);for(int j=0;j<8;j++)leds[(phase+j)%LED_COUNT]=base;break;
+    case 10: fadeToBlackBy(leds,pixelCount,40);for(int j=0;j<8;j++)leds[(phase+j)%pixelCount]=base;break;
     case 11: fill_gradient_RGB(leds,pixelCount,base,CHSV(t,255,255));break;
   }
   FastLED.setBrightness(brightness);
@@ -234,7 +248,7 @@ void setup() {
   mqttUser=prefs.getString("mqtt_user","");
   mqttPass=prefs.getString("mqtt_pass","");
   mqttPort=prefs.getUShort("mqtt_port",1883);
-  FastLED.addLeds<WS2812B,LED_PIN,GRB>(leds,LED_MAX_PIXELS);
+  FastLED.addLeds<WS2812B,LED_PIN,GRB>(leds,pixelCount);
   FastLED.setMaxPowerInVoltsAndMilliamps(5,LED_MAX_MILLIAMPS);
   FastLED.clear(true);
   WiFi.mode(WIFI_STA);

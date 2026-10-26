@@ -1,6 +1,6 @@
 # Contrato HTTP de referencia (v0.1)
 
-> **Estado:** contrato esperado por el cliente Flutter actual. La implementación de firmware no está publicada en este repositorio y no se ha verificado aquí. Puede requerir adaptación.
+> Implementado en `firmware/src/main.cpp`. La cantidad se configura por controlador desde Android y se conserva en NVS.
 
 ## Obtener estado
 
@@ -17,7 +17,7 @@ Ejemplo de respuesta esperado por `LedState.fromJson`:
   "effect": 0,
   "speed": 100,
   "color": 10494192,
-  "pixels": 320,
+  "pixels": 60,
   "audioLevel": 0,
   "wifi": "connected"
 }
@@ -43,6 +43,11 @@ El cliente también puede enviar `color=0xA020F0`. Se espera un JSON con la mism
 | `effect` | Entero | Identificador de efecto; mapa pendiente de validar |
 | `speed` | Entero 1–255 | Velocidad |
 | `color` | Texto hexadecimal `0xRRGGBB` | Color |
+| `pixels` | Entero 1–1024 | Cantidad de píxeles/grupos direccionables de esta tira |
+
+Ejemplo: `POST /api/control` con `pixels=60` devuelve el estado con `pixels: 60`. También se admite JSON con `{"pixels":60}`. Valores vacíos, fraccionarios, no numéricos o fuera de rango devuelven HTTP 400 sin modificar el estado. `GET /api/info` anuncia `pixels`, `max_pixels`, protocolo y orden de color.
+
+Android guarda la cantidad por controlador y la aplica al conectar cuando difiere del estado. Si la ESP32 está desconectada, la configuración queda guardada en el teléfono y se intenta aplicar en la próxima conexión. Si un firmware antiguo ignora `pixels`, la app muestra un error en vez de darlo por configurado. Los controladores guardados por versiones anteriores no se sobrescriben con una cantidad predeterminada.
 
 ## Compatibilidad y seguridad
 

@@ -25,6 +25,8 @@ jobs:
         run: flutter pub get
       - name: Analyze Dart code
         run: flutter analyze --no-fatal-infos
+      - name: Test controller LED configuration
+        run: flutter test
       - name: Build release APK
         run: flutter build apk --release
       - name: Upload APK

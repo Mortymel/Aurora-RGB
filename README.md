@@ -7,7 +7,7 @@
 ![Hardware](https://img.shields.io/badge/hardware-ESP32--WROOM--32-blue)
 ![Android](https://img.shields.io/badge/app-Flutter-7C4DFF)
 
-> **Proyecto en desarrollo.** El código Flutter está publicado en este repositorio privado. La compilación APK y la compatibilidad con firmware/hardware real todavía deben validarse. No se debe interpretar la hoja de ruta como una lista de funciones terminadas.
+> **Proyecto en desarrollo.** Android y firmware se compilan con GitHub Actions. La compatibilidad física debe comprobarse con cada tira. No se debe interpretar la hoja de ruta como una lista de funciones terminadas.
 
 ## 🌈 Qué es
 
@@ -22,7 +22,7 @@ La comunicación actual está diseñada para **WiFi local mediante HTTP**. El de
 | Interfaz Flutter con tema oscuro | Código disponible |
 | Control WiFi HTTP | Implementado en cliente; integración pendiente |
 | Encendido, brillo, color, efectos y velocidad | Interfaz implementada; hardware pendiente |
-| Persistencia de dirección IP y nombre del dispositivo | Código disponible |
+| Nombre, IP y cantidad de LED por controlador | Configurable al añadir o editar la ESP32; guardado en Android y firmware |
 | Galería de escenas y escenas personalizadas locales | Código disponible; pruebas pendientes |
 | Temporizador de apagado desde la app | Código disponible; requiere app abierta |
 | Escaneo de dispositivos BLE | Experimental |
@@ -32,11 +32,13 @@ La comunicación actual está diseñada para **WiFi local mediante HTTP**. El de
 | MQTT / Home Assistant | Planificado |
 | WebSocket / OTA | Planificado |
 
-## 🔌 Hardware de referencia
+## 🔌 Hardware compatible y cantidad de LED
 
 - **ESP32-WROOM-32** clásico.
-- **BTF-LIGHTING FCOB RGB IC** a 5 V, 160 píxeles/m × 2 m = **320 píxeles**.
-- Consumo nominal previsto de **16 W**; fuente propuesta **5 V / 5 A**, sujeta a comprobación.
+- Tiras **RGB direccionables compatibles con WS2812B y orden GRB**; sin marca, longitud ni cantidad obligatoria.
+- Al agregar la ESP32 en Android se introduce la **cantidad de LED/píxeles direccionables (1–1024)**. Cada controlador tiene su propia cantidad; se puede editar después y se conserva tras reiniciar la ESP32.
+- Si cada chip controla un grupo de LED físicos, cuenta los grupos direccionables. RGBW, tiras analógicas y otros protocolos necesitan otro controlador de firmware; no se promete compatibilidad eléctrica universal.
+- Fuente externa dimensionada según tensión, cantidad y consumo real de la tira. El binario actual usa datos en GPIO 5 y un límite de software de 3000 mA para tiras de 5 V.
 - Conversión de nivel lógico recomendada con **74AHCT125**.
 - **INMP441** I²S opcional para una etapa posterior.
 
@@ -62,7 +64,7 @@ flutter pub get
 flutter run
 ```
 
-Requiere Flutter, Android SDK y acceso autorizado a este repositorio privado.
+Requiere Flutter y Android SDK.
 
 ## 📚 Documentación
 
@@ -101,4 +103,4 @@ El primer objetivo es **obtener un APK reproducible y probarlo con firmware ESP3
 
 **ESP32 RGB Studio** · Prototipo personal de controlador RGB · Documentación en español.
 
-**Licencia:** aún no se ha elegido una licencia de distribución. Al ser un repositorio privado, no se presupone autorización de redistribución.
+**Licencia:** aún no se ha elegido una licencia de distribución; no se presupone autorización de redistribución.

@@ -3,11 +3,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class StudioDevice {
   final String id, name, host;
-  const StudioDevice({required this.id,required this.name,required this.host});
-  Map<String,dynamic> toJson()=>{'id':id,'name':name,'host':host};
+  static const maxPixels = 1024;
+  final int? pixels;
+  const StudioDevice({required this.id,required this.name,required this.host,this.pixels});
+  Map<String,dynamic> toJson()=>{'id':id,'name':name,'host':host,if(pixels!=null)'pixels':pixels};
   factory StudioDevice.fromJson(Map<String,dynamic> j)=>StudioDevice(
     id:j['id']?.toString()??'',name:j['name']?.toString()??'Dispositivo',
-    host:j['host']?.toString()??'');
+    host:j['host']?.toString()??'',pixels:j['pixels'] is int && (j['pixels'] as int)>=1 && (j['pixels'] as int)<=maxPixels?j['pixels'] as int:null);
 }
 class DeviceStore {
   static const _key='studio_devices_v1',_selected='studio_selected_v1';

@@ -61,15 +61,21 @@ class _StudioShellState extends State<StudioShell>{
     poll?.cancel();
     final generation=++connectionGeneration;
     final target=host.trim();
+    final selected=devices.where((d)=>d.id==selectedId).firstOrNull;
     setState((){busy=true;message='Conectando…';});
     try{
       final a=DeviceApi(target);
-      final s=await a.getState();
+      var s=await a.getState();
+      if(!mounted||generation!=connectionGeneration)return;
+      if(selected?.pixels!=null && s.pixels!=selected!.pixels){
+        s=await a.control({'pixels':'${selected.pixels}'});
+        if(s.pixels!=selected.pixels)throw StateError('El firmware no acepta la cantidad de LED. Actualízalo desde el Web Flasher.');
+      }
       final p=await SharedPreferences.getInstance();await p.setString('device_host',host.trim());
       if(!mounted||generation!=connectionGeneration)return;
       setState((){api=a;state=s;message='Conectado';});
       poll=Timer.periodic(const Duration(seconds:4),(_)=>refresh());
-    }catch(e){if(mounted&&generation==connectionGeneration)setState((){api=null;state=null;message='Sin conexión';});}
+    }catch(e){if(mounted&&generation==connectionGeneration){setState((){api=null;state=null;message='Sin conectar · configuración pendiente';});notice('No se pudo conectar y aplicar la cantidad de LED: $e');}}
     finally{if(mounted&&generation==connectionGeneration)setState(()=>busy=false);}
   }
   Future<void> refresh()async{
@@ -105,9 +111,11 @@ class _StudioShellState extends State<StudioShell>{
   Future<void> editDevice({StudioDevice? existing})async{
     final ip=TextEditingController(text:existing?.host??'');
     final name=TextEditingController(text:existing?.name??'');
+    final pixels=TextEditingController(text:existing?.pixels?.toString()??(existing?.id==selectedId&&state!=null&&state!.pixels>0?'${state!.pixels}':''));
+    final formKey=GlobalKey<FormState>();
     final result=await showModalBottomSheet<bool>(context:context,isScrollControlled:true,showDragHandle:true,
       builder:(ctx)=>Padding(padding:EdgeInsets.fromLTRB(24,12,24,MediaQuery.viewInsetsOf(ctx).bottom+32),
-        child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
+        child:SingleChildScrollView(child:Form(key:formKey,child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
           Text(existing==null?'Añadir controlador':'Editar controlador',style:Theme.of(ctx).textTheme.headlineSmall),
           const SizedBox(height:10),
           const Text('Conecta el teléfono a la misma red WiFi que el controlador.',style:TextStyle(color:Colors.white60)),
@@ -115,12 +123,17 @@ class _StudioShellState extends State<StudioShell>{
           TextField(controller:name,textCapitalization:TextCapitalization.sentences,
             decoration:const InputDecoration(labelText:'Nombre',hintText:'LED del salón')),
           const SizedBox(height:12),
-          TextField(controller:ip,keyboardType:TextInputType.url,
+          TextFormField(controller:ip,keyboardType:TextInputType.url,
+            validator:(value){final address=value?.trim()??'';final uri=Uri.tryParse(address.contains('://')?address:'http://$address');return address.isEmpty||uri==null||uri.host.isEmpty||uri.host.contains(' ')||!(uri.scheme=='http'||uri.scheme=='https')?'Introduce una IP o un host válido':null;},
             decoration:const InputDecoration(labelText:'Dirección IP',hintText:'192.168.1.50')),
+          const SizedBox(height:12),
+          TextFormField(controller:pixels,keyboardType:TextInputType.number,
+            validator:(value){final n=int.tryParse(value?.trim()??'');return n==null||n<1||n>StudioDevice.maxPixels?'Introduce un entero entre 1 y ${StudioDevice.maxPixels}':null;},
+            decoration:const InputDecoration(labelText:'Cantidad de LED / píxeles',hintText:'Ej.: 60',helperText:'1–1024 píxeles direccionables. Cuenta grupos si tu tira los usa.',helperMaxLines:2)),
           const SizedBox(height:20),
-          SizedBox(width:double.infinity,child:FilledButton(onPressed:()=>Navigator.pop(ctx,true),
+          SizedBox(width:double.infinity,child:FilledButton(onPressed:(){if(formKey.currentState!.validate())Navigator.pop(ctx,true);},
             child:const Text('Guardar controlador'))),
-        ])));
+        ])))));
     if(result==true){
       final address=ip.text.trim();
       final uri=Uri.tryParse(address.contains('://')?address:'http://$address');
@@ -128,7 +141,7 @@ class _StudioShellState extends State<StudioShell>{
         notice('Introduce una dirección IP o un host válido');
       }else{
         final id=existing?.id??DateTime.now().microsecondsSinceEpoch.toString();
-        final device=StudioDevice(id:id,name:name.text.trim().isEmpty?'Controlador LED':name.text.trim(),host:address);
+        final device=StudioDevice(id:id,name:name.text.trim().isEmpty?'Controlador LED':name.text.trim(),host:address,pixels:int.parse(pixels.text.trim()));
         setState((){
           devices=[for(final d in devices)if(d.id!=id)d,device];
           selectedId=id;host=device.host;deviceName=device.name;api=null;state=null;message='Sin conectar';
@@ -138,7 +151,7 @@ class _StudioShellState extends State<StudioShell>{
         await connect();
       }
     }
-    ip.dispose();name.dispose();
+    ip.dispose();name.dispose();pixels.dispose();
   }
   Future<void> selectDevice(StudioDevice d)async{
     if(selectedId==d.id&&api!=null)return;
@@ -169,7 +182,7 @@ class _StudioShellState extends State<StudioShell>{
       title:Text('No hay controladores'),subtitle:Text('Añade una ESP32 conectada a tu red WiFi.'))),
     ...devices.map((d)=>Card(child:ListTile(
       onTap:()=>selectDevice(d),leading:Icon(Icons.lightbulb_outline,color:d.id==selectedId?violet:Colors.white54),
-      title:Text(d.name),subtitle:Text('${d.host} · ${d.id==selectedId?message:'Guardado'}'),
+      title:Text(d.name),subtitle:Text('${d.host} · ${d.pixels==null?'Cantidad sin configurar':'${d.pixels} LED'} · ${d.id==selectedId?message:'Guardado'}'),
       trailing:PopupMenuButton<String>(onSelected:(v){if(v=='edit'){editDevice(existing:d);}else{removeDevice(d);}},
         itemBuilder:(_)=>const [PopupMenuItem(value:'edit',child:Text('Editar')),PopupMenuItem(value:'delete',child:Text('Eliminar'))])))),
     const SizedBox(height:10),
@@ -214,7 +227,7 @@ class _StudioShellState extends State<StudioShell>{
       height:20,margin:const EdgeInsets.symmetric(horizontal:1),decoration:BoxDecoration(
         color:(s?.power??false)?HSVColor.fromAHSV(1,(i*360/24+(s?.effect??0)*20)%360,0.95,0.95).toColor():Colors.white12,
         borderRadius:BorderRadius.circular(5),boxShadow:(s?.power??false)?[BoxShadow(color:Color(s?.color??0xFF8C65E5).withValues(alpha:0.5),blurRadius:11)]:null)))))),
-      Positioned(left:18,bottom:15,child:Text('${s?.pixels??320} PÍXELES  ·  VISTA ILUSTRATIVA',style:const TextStyle(fontSize:10,letterSpacing:1.2,color:Colors.white70)))]));
+      Positioned(left:18,bottom:15,child:Text('${s==null||s.pixels==0?'Cantidad sin configurar':'${s.pixels} PÍXELES'}  ·  VISTA ILUSTRATIVA',style:const TextStyle(fontSize:10,letterSpacing:1.2,color:Colors.white70)))]));
   Widget deviceCarousel(){
     if(devices.isEmpty)return card(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       const Text('Tus luces',style:TextStyle(fontSize:19,fontWeight:FontWeight.w600)),
@@ -239,9 +252,10 @@ class _StudioShellState extends State<StudioShell>{
                 const SizedBox(width:10),
                 Expanded(child:Text(d.name,maxLines:1,overflow:TextOverflow.ellipsis,
                   style:const TextStyle(fontSize:19,fontWeight:FontWeight.w600))),
-                IconButton(tooltip:'Cambiar nombre',onPressed:()=>editDevice(existing:d),icon:const Icon(Icons.edit_outlined,size:20)),
+                IconButton(tooltip:'Editar controlador y cantidad de LED',onPressed:()=>editDevice(existing:d),icon:const Icon(Icons.edit_outlined,size:20)),
               ]),
               Text(active?message:d.host,style:const TextStyle(color:Colors.white60,fontSize:12)),
+              Text('${current?.pixels??d.pixels??'—'} LED',style:const TextStyle(color:Colors.white70,fontSize:12)),
               const SizedBox(height:12),
               Expanded(child:Container(decoration:BoxDecoration(
                 color:current?.power==true?Color(current!.color).withValues(alpha:0.28):const Color(0xFF272B32),

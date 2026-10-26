@@ -32,8 +32,8 @@ La orden `flutter create` genera la carpeta `android/` durante el build. El proy
 
 1. Alimentar correctamente la ESP32 y la tira.
 2. Conectar el móvil a la misma red WiFi que la ESP32.
-3. Abrir ESP32 RGB Studio e introducir la IP local del dispositivo.
-4. Pulsar **Conectar por WiFi**.
+3. En Android, abrir **Dispositivos → Añadir**, introducir nombre, IP local y **Cantidad de LED / píxeles** (1–1024).
+4. Pulsar **Guardar controlador**. La app conecta, aplica la cantidad y comprueba la respuesta. Se puede cambiar en **Editar controlador**; si está desconectado, se aplicará al reconectar.
 5. Si el firmware implementa los endpoints compatibles, aparecerá el estado y los controles.
 
 La IP `192.168.4.1` es un valor inicial orientativo para modo punto de acceso; no implica que el firmware actual active ese modo.

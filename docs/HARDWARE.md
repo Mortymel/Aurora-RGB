@@ -5,14 +5,14 @@
 | Elemento | Referencia |
 | --- | --- |
 | Microcontrolador | ESP32-WROOM-32 clásico |
-| Tira | BTF-LIGHTING FCOB RGB IC, direccionable a 5 V |
-| Densidad y longitud | 160 píxeles/m × 2 m = **320 píxeles** |
-| Consumo nominal estimado | 8 W/m × 2 m = **16 W** |
-| Fuente propuesta | 5 V, **5 A** (margen sobre ~3,2 A nominales) |
+| Tira | RGB direccionable compatible con WS2812B / GRB; sin marca obligatoria |
+| Cantidad | 1–1024 píxeles por controlador, indicada al añadir o editar la ESP32 en Android |
+| Consumo | Depende de la tira, cantidad y brillo; medir y consultar al fabricante |
+| Fuente | Externa, con tensión y corriente adecuadas a la tira; binario actual preparado para 5 V |
 | Adaptador lógico recomendado | 74AHCT125, de 3,3 V a 5 V |
 | Micrófono opcional | INMP441 I²S, aún no integrado |
 
-**Importante:** verificar la referencia exacta de la tira, el protocolo del chip y la corriente real. Las cifras anteriores son datos de planificación, no una medición.
+**Importante:** verificar protocolo, orden de color, tensión y corriente real. Cuenta píxeles/grupos direccionables, que pueden agrupar varios LED físicos. La cantidad se guarda en Android y en la ESP32. Otros protocolos, RGBW y tiras analógicas requieren un controlador distinto; no basta cambiar la cantidad.
 
 ## Conexión conceptual
 
@@ -24,7 +24,7 @@ ESP32 GPIO ──► 74AHCT125 ──► DIN tira LED
                 ↑ 5 V
 ```
 
-El GPIO concreto y el orden RGB deben coincidir con la configuración del firmware. No se fija un número de pin aquí porque todavía no se ha validado el cableado final.
+El binario publicado utiliza GPIO 5 y orden GRB. El cableado debe coincidir; cambia y recompila el controlador si tu tira requiere otro protocolo u orden.
 
 ## Recomendaciones de seguridad
 

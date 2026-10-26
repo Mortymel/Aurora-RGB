@@ -12,7 +12,7 @@ class LedState {
     effect: (v['effect'] as num?)?.toInt() ?? 0,
     speed: (v['speed'] as num?)?.toInt() ?? 100,
     color: (v['color'] as num?)?.toInt() ?? 0xA020F0,
-    pixels: (v['pixels'] as num?)?.toInt() ?? 320,
+    pixels: (v['pixels'] as num?)?.toInt() ?? 0,
     audioLevel: (v['audioLevel'] as num?)?.toInt() ?? 0,
     wifi: v['wifi']?.toString() ?? '',
   );

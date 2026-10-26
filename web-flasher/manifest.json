@@ -1,6 +1,6 @@
 {
-  "name": "Morty's LED — ESP32-WROOM-32 · XGB1338",
-  "version": "0.2.0-dev",
+  "name": "Morty's LED — ESP32 · RGB direccionable",
+  "version": "0.3.0-dev",
   "new_install_prompt_erase": true,
   "builds": [
     {

@@ -1,12 +1,14 @@
-# Firmware Morty's LED 0.1.0-dev
+# Firmware Morty's LED 0.3.0-dev
 
 ## Estado
 
-Código inicial para ESP32-WROOM-32 clásico con 12 efectos, control de brillo y velocidad, HTTP compatible con la app, conexión WiFi por AP inicial y MQTT opcional. **No se ha probado físicamente con la tira FCOB RGB IC ni se ha validado todavía la compilación.**
+Firmware para ESP32-WROOM-32 clásico con 12 efectos, cantidad de píxeles configurable, brillo y velocidad, HTTP compatible con la app, conexión WiFi por AP inicial y MQTT opcional. La compilación se comprueba en CI; las pruebas físicas con cada tira siguen siendo necesarias.
 
 ## Hardware
 
-El ejemplo supone una tira compatible con **WS2812B / GRB**, 320 píxeles direccionables, datos en **GPIO 5** y fuente de 5 V independiente. **La tira real podría utilizar otro protocolo o grupos de píxeles**. Verificar antes de conectar. Cambiar `LED_PIN`, `LED_COUNT` y el tipo de LED en `src/main.cpp` si corresponde.
+El binario admite tiras RGB compatibles con **WS2812B / GRB**, datos en **GPIO 5** y fuente de 5 V independiente. No exige marca ni longitud. En Android, al añadir o editar cada ESP32, indica **1–1024 píxeles direccionables**. La app envía `pixels` al conectar; el firmware lo guarda en NVS y lo usa en todos los efectos. El primer arranque sin configuración usa un único píxel. Las configuraciones anteriores se conservan.
+
+Si la tira agrupa LED, introduce grupos direccionables, no diodos físicos. Otros órdenes de color, protocolos, RGBW o tiras analógicas requieren adaptar el controlador; modificar solo la cantidad no cambia la compatibilidad eléctrica. `LED_MAX_PIXELS` limita memoria y rango; `LED_PIN` y el tipo de LED se cambian al compilar si el hardware lo requiere.
 
 ## Compilar
 
@@ -24,7 +26,7 @@ Si no hay WiFi guardado o no conecta, la ESP32 crea un punto de acceso `MortysLE
 ## API
 
 - `GET /api/state`
-- `POST /api/control` con campos `power`, `brightness` (0–255), `speed` (1–255), `effect` (0–11), `color` (0xRRGGBB)
+- `POST /api/control` con campos `power`, `brightness` (0–255), `speed` (1–255), `effect` (0–11), `color` (0xRRGGBB), `pixels` (entero 1–1024; inválidos reciben HTTP 400)
 - `GET /api/info`
 - `GET /api/effects`
 - `GET /api/health`

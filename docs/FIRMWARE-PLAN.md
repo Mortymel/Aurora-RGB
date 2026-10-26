@@ -2,11 +2,11 @@
 
 ## Objetivo
 
-Construir un firmware real y reproducible para ESP32-WROOM-32 que controle la tira BTF-LIGHTING FCOB RGB IC de 320 píxeles y ofrezca capacidades detectables por Morty's LED.
+Mantener un firmware reproducible para ESP32-WROOM-32 con tiras RGB direccionables compatibles. La cantidad se configura por controlador en Android (1–1024 píxeles en el binario actual), sin marca ni longitud obligatorias.
 
 ## Paso 1 — Identificar hardware y protocolo
 
-Antes de programar, confirmar chip/controlador de la tira, orden de colores, GPIO de datos, fuente 5 V, nivel lógico y límite de corriente. Validar con patrón rojo/verde/azul/blanco a brillo reducido. **No asumir que 320 LED físicos equivalen a 320 píxeles direccionables independientes**: depende del modelo FCOB RGBIC.
+Confirmar chip/controlador, protocolo, orden de colores, GPIO, tensión, nivel lógico y corriente. Validar con patrón rojo/verde/azul/blanco a brillo reducido. Contar píxeles/grupos direccionables: un grupo puede contener varios LED físicos. El binario actual usa WS2812B/GRB; otros protocolos requieren un controlador distinto.
 
 ## Paso 2 — API estable
 
@@ -68,4 +68,4 @@ docs/
   HARDWARE.md
 ```
 
-No se ha incorporado firmware no verificado al repositorio; la primera entrega deberá incluir instrucciones de compilación y flasheo.
+El firmware y las instrucciones de compilación y flasheo están en `firmware/`. La validación física sigue pendiente.

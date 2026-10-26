@@ -10,12 +10,12 @@
 └────────────────────────────┘                        └─────────┬───────────┘
                                                                 │ Datos 5 V
                                                         ┌───────▼──────────┐
-                                                        │ Tira RGB IC FCOB │
-                                                        │ 320 píxeles      │
+                                                        │ RGB direccionable│
+                                                        │ 1–1024 píxeles   │
                                                         └──────────────────┘
 ```
 
-**Estado real:** el código Flutter está en este repositorio; el firmware ESP32 v0.1 se desarrolló como proyecto separado y todavía no se ha publicado aquí. El dibujo es una arquitectura objetivo y no certifica pruebas físicas.
+**Estado real:** Android y firmware ESP32 se incluyen en este repositorio. La cantidad se configura por controlador desde Android y se guarda en la ESP32. El dibujo no certifica pruebas físicas ni compatibilidad con todos los protocolos LED.
 
 ## Componentes de software
 
@@ -27,9 +27,9 @@
 
 ## Flujo de control actual
 
-1. El usuario introduce la IP de la ESP32 en la misma red.
+1. El usuario introduce nombre, IP y cantidad de píxeles de cada ESP32 en la misma red.
 2. Flutter consulta `GET /api/state`.
-3. La interfaz representa el estado recibido.
+3. Aplica la cantidad guardada cuando difiere, comprueba la respuesta y representa el estado recibido.
 4. El usuario modifica brillo, color, efecto, velocidad o encendido.
 5. Flutter envía `POST /api/control` con campos de formulario.
 6. Se vuelve a consultar el estado aproximadamente cada 3 segundos.

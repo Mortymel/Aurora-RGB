@@ -27,7 +27,7 @@ Este documento distingue trabajo publicado, trabajo sin validar y funciones futu
 - [x] Interfaz inicial de encendido, brillo, color, velocidad y efectos.
 - [x] Cliente HTTP para endpoints previstos.
 - [ ] Publicar firmware ESP32 compatible y documentar pines.
-- [ ] Probar de extremo a extremo con la tira real de 320 píxeles.
+- [ ] Probar de extremo a extremo con varias cantidades de píxeles y tiras compatibles, incluidos reinicio y reducción de longitud.
 - [ ] Validar colores, límites de corriente y rendimiento.
 - [ ] Manejar desconexiones, errores y estados no compatibles.
 
