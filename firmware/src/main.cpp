@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include <ESPmDNS.h>
 #include <WebServer.h>
 #include <Preferences.h>
 #include <FastLED.h>
@@ -255,6 +256,11 @@ void setup() {
   String ssid=prefs.getString("ssid",""),pass=prefs.getString("pass","");
   if(!ssid.isEmpty()){WiFi.begin(ssid.c_str(),pass.c_str());unsigned long started=millis();while(WiFi.status()!=WL_CONNECTED&&millis()-started<12000)delay(100);}
   if(WiFi.status()!=WL_CONNECTED){WiFi.mode(WIFI_AP_STA);WiFi.softAP(("MortysLED-"+deviceId).c_str());}
+  if(WiFi.status()==WL_CONNECTED && MDNS.begin(("mortys-"+deviceId).c_str())) {
+    MDNS.addService("http","tcp",80);
+    MDNS.addServiceTxt("http","tcp","app","mortys-led");
+    MDNS.addServiceTxt("http","tcp","id",deviceId);
+  }
   mqtt.setServer(mqttHost.c_str(),mqttPort);
   mqtt.setBufferSize(1536);
   mqtt.setCallback(mqttMessage);
