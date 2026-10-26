@@ -34,7 +34,9 @@ void main() {
     await tester.pumpAndSettle();
     final fields = tester.widgetList<TextFormField>(find.byType(TextFormField)).toList();
     expect(fields[1].controller!.text, '192.168.1.20');
-    expect(fields[1].readOnly, isTrue);
+    expect(tester.widget<TextField>(find.descendant(
+      of: find.byType(TextFormField).at(1), matching: find.byType(TextField),
+    )).readOnly, isTrue);
     expect(fields[2].controller!.text, '120');
     await tester.pumpWidget(const SizedBox.shrink());
   });
