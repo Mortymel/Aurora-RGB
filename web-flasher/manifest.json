@@ -1,5 +1,5 @@
 {
-  "name": "Morty's LED â€” ESP32 Â· RGB direccionable",
+  "name": "Morty's LED — ESP32 · RGB direccionable",
   "version": "0.8.0",
   "new_install_prompt_erase": true,
   "builds": [
@@ -11,4 +11,3 @@
     }
   ]
 }
-
