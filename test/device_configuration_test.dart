@@ -15,7 +15,7 @@ void main() {
 
   test('Each controller retains its own count; legacy devices have no invented count', () async {
     await DeviceStore.save(const [
-      StudioDevice(id:'a',name:'Salón',host:'192.168.1.10',pixels:1),
+      StudioDevice(id:'a',name:'SalÃ³n',host:'192.168.1.10',pixels:1),
       StudioDevice(id:'b',name:'Pasillo',host:'192.168.1.11',pixels:1024),
     ]);
     final devices=await DeviceStore.load();
@@ -24,13 +24,13 @@ void main() {
   });
 
   testWidgets('Discovery pre-fills the address and controller pixel count', (tester) async {
-    await tester.pumpWidget(MaterialApp(home: AddDeviceWizard(
+    await tester.pumpWidget(MaterialApp(home: LanDeviceWizard(
       discoverControllers: () async => [
         DiscoveredController('192.168.1.20', LedState.fromJson({'pixels': 120})),
       ],
     )));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('120 píxeles detectados'));
+    await tester.tap(find.text('120 pÃ­xeles detectados'));
     await tester.pumpAndSettle();
     final fields = tester.widgetList<TextFormField>(find.byType(TextFormField)).toList();
     expect(fields[1].controller!.text, '192.168.1.20');
@@ -43,13 +43,13 @@ void main() {
 
   testWidgets('Manual mode ignores a late discovery result', (tester) async {
     final discovery = Completer<List<DiscoveredController>>();
-    await tester.pumpWidget(MaterialApp(home: AddDeviceWizard(
+    await tester.pumpWidget(MaterialApp(home: LanDeviceWizard(
       discoverControllers: () => discovery.future,
     )));
     await tester.pump();
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
-    await tester.ensureVisible(find.text('Configuración manual'));
-    await tester.tap(find.text('Configuración manual'));
+    await tester.ensureVisible(find.text('ConfiguraciÃ³n manual'));
+    await tester.tap(find.text('ConfiguraciÃ³n manual'));
     await tester.pumpAndSettle();
     expect(find.byType(LinearProgressIndicator), findsNothing);
     discovery.complete([
@@ -65,7 +65,7 @@ void main() {
 
   testWidgets('Closing the wizard ignores a late discovery failure', (tester) async {
     final discovery = Completer<List<DiscoveredController>>();
-    await tester.pumpWidget(MaterialApp(home: AddDeviceWizard(
+    await tester.pumpWidget(MaterialApp(home: LanDeviceWizard(
       discoverControllers: () => discovery.future,
     )));
     await tester.pump();
@@ -81,18 +81,18 @@ void main() {
     await http.runWithClient(() async {
       await tester.pumpWidget(StudioApp(discoverControllers: () async => []));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Añadir tira'));
+      await tester.tap(find.text('AÃ±adir tira'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Configuración manual'));
+      await tester.tap(find.text('ConfiguraciÃ³n manual'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.widgetWithText(TextFormField,'Nombre de la tira'),'Salón');
+      await tester.enterText(find.widgetWithText(TextFormField,'Nombre de la tira'),'SalÃ³n');
       await tester.enterText(find.byType(TextFormField).at(1),'192.168.1.10');
       for(final invalid in ['', '0', '1025', '2.5', 'abc']) {
         await tester.enterText(find.byType(TextFormField).at(2),invalid);
         await tester.ensureVisible(find.text('Guardar tira'));
         await tester.tap(find.text('Guardar tira'));
         await tester.pumpAndSettle();
-        expect(find.text('Entre 1 y 1024 píxeles'),findsOneWidget);
+        expect(find.text('Entre 1 y 1024 pÃ­xeles'),findsOneWidget);
         expect(posted,isEmpty);
       }
       await tester.enterText(find.byType(TextFormField).at(2),'60');
@@ -114,3 +114,4 @@ void main() {
     }));
   });
 }
+

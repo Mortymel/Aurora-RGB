@@ -23,7 +23,7 @@ a{color:#83d9bc}.warning{border-left:3px solid #e6b667;padding-left:15px}
 <p>Conecta tu ESP32-WROOM-32 por USB para instalar el controlador de tus tiras LED. Diseñado para el mismo estilo de Morty's LED en Android.</p>
 <section class="panel">
 <h2>ESP32-WROOM-32 · Tiras RGB direccionables</h2>
-<p>Firmware experimental · v0.3.0-dev · Cantidad configurable desde Android: 1–1024 píxeles por controlador. 12 efectos, brillo y velocidad, control WiFi local y MQTT opcional.</p>
+<p>Firmware experimental · v0.8.0 · Cantidad configurable desde Android: 1–1024 píxeles por controlador. 12 efectos, brillo y velocidad, control WiFi local y MQTT opcional.</p>
 <esp-web-install-button manifest="./manifest.json">
 <button slot="activate">Conectar e instalar</button>
 <span slot="unsupported">Necesitas Chrome o Edge de escritorio con Web Serial.</span>
@@ -38,10 +38,11 @@ a{color:#83d9bc}.warning{border-left:3px solid #e6b667;padding-left:15px}
 <li>Desconecta la tira LED durante el flasheo inicial.</li>
 <li>Conecta la placa con un cable USB de datos.</li>
 <li>Abre este instalador desde una web HTTPS con <code>firmware.bin</code> en la misma carpeta.</li>
-<li>Después, conecta al punto de acceso <code>MortysLED-XXXX</code> y abre <code>192.168.4.1/setup</code> para configurar WiFi.</li>
-<li>En Android, pulsa <strong>Añadir controlador</strong>, introduce nombre, IP y cantidad de LED/píxeles. Si tu tira agrupa LED, introduce la cantidad de grupos direccionables. Puedes cambiarla en <strong>Editar controlador</strong>.</li>
+<li>Después de instalar, abre Android y pulsa <strong>Añadir tira → Buscar por Bluetooth</strong>. Selecciona <code>MortysLED-…</code>.</li>
+<li>Introduce tu red WiFi de 2,4 GHz, contraseña, nombre y cantidad de LED/píxeles. La ESP32 confirma la conexión y la app añade la tira automáticamente. Para cambiar de red, mantén BOOT pulsado 3 segundos después del arranque.</li>
 </ol>
-<p class="warning">Prototipo de desarrollo: el punto de acceso inicial no tiene contraseña y el HTTP local no tiene autenticación. No utilizar en redes públicas ni en instalaciones críticas.</p>
+<p class="warning">El Bluetooth de configuración utiliza emparejamiento cifrado sin PIN y una ventana de 10 minutos. Configura cerca de la placa en un entorno de confianza. El control HTTP local sigue sin autenticación; utiliza una red privada.</p>
 </section>
 <p><a href="https://github.com/Mortymel/ESP32-RGB-Studio-">Código y documentación del proyecto</a></p>
 </main></body></html>
+

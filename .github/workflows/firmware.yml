@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'firmware/**'
+      - 'scripts/test_firmware_protocol.cpp'
       - 'web-flasher/**'
       - '.github/workflows/firmware.yml'
 permissions:
@@ -22,6 +23,8 @@ jobs:
           python-version: '3.11'
       - name: Install PlatformIO and esptool
         run: python -m pip install platformio 'esptool>=5,<6'
+      - name: Test provisioning validation and framing
+        run: g++ -std=c++11 -Wall -Wextra -Werror -fsanitize=address,undefined scripts/test_firmware_protocol.cpp -o /tmp/protocol-test && /tmp/protocol-test
       - name: Compile ESP32-WROOM-32 firmware
         run: pio run -d firmware
       - name: Merge flash image for browser installer
@@ -51,3 +54,4 @@ jobs:
       - name: Deploy Morty's LED Web Flasher
         id: deployment
         uses: actions/deploy-pages@v4
+

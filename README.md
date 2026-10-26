@@ -1,3 +1,9 @@
+> **Versión 0.8.0 — alta por Bluetooth**
+>
+> Flashea el firmware 0.8.0 y utiliza la app 0.8.0. En Android: Añadir tira → Buscar por Bluetooth → seleccionar MortysLED-… → introducir WiFi de 2,4 GHz, contraseña, nombre y cantidad de píxeles → Configurar y añadir tira. Acepta el emparejamiento de Android. La ESP32 confirma la conexión antes de guardar y la app utiliza la IP recibida. El teléfono debe estar en esa misma red para el control diario. BOOT durante 3 segundos después del arranque reabre la configuración por 10 minutos. Ya no se crea el punto de acceso WiFi abierto del firmware antiguo.
+>
+> El firmware anterior no permite esta función: **hay que volver a flashear la ESP32**. Ver [protocolo y límites](docs/BLUETOOTH.md).
+
 # ✨ ESP32 RGB Studio
 
 **Control inteligente de iluminación LED direccionable con ESP32 y una aplicación móvil Flutter.**
@@ -104,3 +110,4 @@ El primer objetivo es **obtener un APK reproducible y probarlo con firmware ESP3
 **ESP32 RGB Studio** · Prototipo personal de controlador RGB · Documentación en español.
 
 **Licencia:** aún no se ha elegido una licencia de distribución; no se presupone autorización de redistribución.
+

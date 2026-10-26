@@ -22,7 +22,7 @@
 #ifndef LED_MAX_PIXELS
 #define LED_MAX_PIXELS 1024
 #endif
-#define FW_VERSION "0.3.0-dev"
+#define FW_VERSION "0.8.0"
 #define API_VERSION 1
 
 CRGB leds[LED_MAX_PIXELS];
@@ -82,6 +82,14 @@ void persist() {
   prefs.putUChar("effect",effect);
   prefs.putUInt("color",colorValue);
   prefs.putUShort("pixels",pixelCount);
+  String blob = prefs.getString("setup", "");
+  if (!blob.isEmpty()) {
+    JsonDocument setup;
+    if (!deserializeJson(setup, blob) && setup["pixels"].as<int>() != pixelCount) {
+      setup["pixels"] = pixelCount;
+      blob = ""; serializeJson(setup, blob); prefs.putString("setup", blob);
+    }
+  }
 }
 int effectIndex(const String &name) {
   for (int i=0;i<EFFECT_COUNT;i++) if (name.equalsIgnoreCase(effectNames[i])) return i;
@@ -159,14 +167,6 @@ void handleEffects() {
   for(int i=0;i<EFFECT_COUNT;i++){JsonObject e=arr.add<JsonObject>();e["id"]=i;e["name"]=effectNames[i];}
   String out;serializeJson(doc,out);respondJson(out);
 }
-void handleSetup() {
-  if (WiFi.getMode()!=WIFI_AP && WiFi.getMode()!=WIFI_AP_STA) {server.send(403,"text/plain","Setup only in AP mode");return;}
-  String ssid=server.arg("ssid"),password=server.arg("password");
-  if(ssid.isEmpty()||ssid.length()>32||password.length()>63){server.send(400,"text/plain","Invalid WiFi settings");return;}
-  prefs.putString("ssid",ssid);prefs.putString("pass",password);
-  server.send(200,"text/plain","Saved. Rebooting.");
-  delay(300);ESP.restart();
-}
 void mqttMessage(char *topic,byte *payload,unsigned int length) {
   if(length>512)return;
   String raw;raw.reserve(length+1);
@@ -211,6 +211,8 @@ void mqttLoop() {
     }
   }else mqtt.loop();
 }
+#include "provisioning.h"
+
 void render() {
   if(!powerOn||brightness==0){FastLED.clear();FastLED.show();return;}
   fill_solid(leds+pixelCount,LED_MAX_PIXELS-pixelCount,CRGB::Black);
@@ -235,6 +237,7 @@ void render() {
 }
 void setup() {
   Serial.begin(115200);
+  pinMode(0, INPUT_PULLUP);
   prefs.begin("mortys-led",false);
   powerOn=prefs.getBool("power",true);
   brightness=prefs.getUChar("bright",128);
@@ -244,6 +247,12 @@ void setup() {
   pixelCount=constrain(prefs.getUShort("pixels",LED_COUNT),1,LED_MAX_PIXELS);
   deviceId=String((uint32_t)(ESP.getEfuseMac()&0xFFFFFF),HEX);
   deviceName=prefs.getString("name","Morty's LED");
+  JsonDocument setupDoc;
+  String setupBlob = prefs.getString("setup", "");
+  if (!setupBlob.isEmpty() && !deserializeJson(setupDoc, setupBlob)) {
+    deviceName = setupDoc["name"].as<String>();
+    pixelCount = constrain(setupDoc["pixels"].as<int>(), 1, LED_MAX_PIXELS);
+  }
   mqttBase="mortys-led/"+deviceId;
   mqttHost=prefs.getString("mqtt_host","");
   mqttUser=prefs.getString("mqtt_user","");
@@ -254,13 +263,15 @@ void setup() {
   FastLED.clear(true);
   WiFi.mode(WIFI_STA);
   String ssid=prefs.getString("ssid",""),pass=prefs.getString("pass","");
-  if(!ssid.isEmpty()){WiFi.begin(ssid.c_str(),pass.c_str());unsigned long started=millis();while(WiFi.status()!=WL_CONNECTED&&millis()-started<12000)delay(100);}
-  if(WiFi.status()!=WL_CONNECTED){WiFi.mode(WIFI_AP_STA);WiFi.softAP(("MortysLED-"+deviceId).c_str());}
-  if(WiFi.status()==WL_CONNECTED && MDNS.begin(("mortys-"+deviceId).c_str())) {
-    MDNS.addService("http","tcp",80);
-    MDNS.addServiceTxt("http","tcp","app","mortys-led");
-    MDNS.addServiceTxt("http","tcp","id",deviceId);
+  if (!setupDoc.isNull()) { ssid = setupDoc["ssid"].as<String>(); pass = setupDoc["password"].as<String>(); }
+  WiFi.setAutoReconnect(true);
+  if (!ssid.isEmpty()) {
+    WiFi.begin(ssid.c_str(), pass.c_str());
+    unsigned long started = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - started < 12000) delay(100);
   }
+  if (WiFi.status() == WL_CONNECTED) startMdns();
+  else startProvisioning();
   mqtt.setServer(mqttHost.c_str(),mqttPort);
   mqtt.setBufferSize(1536);
   mqtt.setCallback(mqttMessage);
@@ -269,17 +280,15 @@ void setup() {
   server.on("/api/info",HTTP_GET,handleInfo);
   server.on("/api/effects",HTTP_GET,handleEffects);
   server.on("/api/health",HTTP_GET,[]{respondJson("{\"ok\":true}");});
-  server.on("/setup",HTTP_GET,[]{
-    server.send(200,"text/html","<meta name='viewport' content='width=device-width'><h2>Morty's LED</h2><p>WiFi inicial (solo en el punto de acceso del dispositivo)</p><form method='POST'><input name='ssid' placeholder='Nombre de red'><input type='password' name='password' placeholder='Contrasena'><button>Guardar</button></form>");
-  });
-  server.on("/setup",HTTP_POST,handleSetup);
   server.begin();
   Serial.printf("Morty's LED %s | ID %s | IP %s\n",FW_VERSION,deviceId.c_str(),WiFi.localIP().toString().c_str());
 }
 void loop() {
+  handleProvisioning();
   server.handleClient();
   mqttLoop();
   if(millis()-lastFrame >= (uint32_t)map(speed,1,255,85,12)){
     lastFrame=millis();phase++;render();
   }
 }
+

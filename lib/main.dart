@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'device_api.dart';
-import 'ble_provisioning.dart';
 import 'scene_store.dart';
 import 'device_store.dart';
 import 'add_device_wizard.dart';
@@ -116,7 +115,7 @@ class _StudioShellState extends State<StudioShell>{
     );
     if (!mounted || device == null) return;
     setState(() {
-      devices = [...devices, device];
+      devices = [...devices.where((d) => d.id != device.id && d.host != device.host), device];
       selectedId = device.id;
       host = device.host;
       deviceName = device.name;
@@ -212,7 +211,7 @@ class _StudioShellState extends State<StudioShell>{
         itemBuilder:(_)=>const [PopupMenuItem(value:'edit',child:Text('Editar')),PopupMenuItem(value:'delete',child:Text('Eliminar'))])))),
     const SizedBox(height:10),
     OutlinedButton.icon(onPressed:scanBle,icon:const Icon(Icons.bluetooth_searching),label:const Text('Buscar por Bluetooth')),
-    const Padding(padding:EdgeInsets.all(8),child:Text('La búsqueda Bluetooth detecta dispositivos compatibles, pero todavía no configura el WiFi.',style:TextStyle(color:Colors.white54))),
+    const Padding(padding:EdgeInsets.all(8),child:Text('Configura una ESP32 por Bluetooth para conectarla a tu WiFi.',style:TextStyle(color:Colors.white54))),
   ]);
   Widget mqttPage()=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     section('Home Assistant · MQTT'),
@@ -226,11 +225,7 @@ class _StudioShellState extends State<StudioShell>{
       Text('No introduzcas credenciales MQTT en esta versión: aún no existe un canal seguro para enviarlas a la ESP32.',style:TextStyle(color:Colors.white60)),
     ])),
   ]);
-  Future<void> scanBle()async{
-    notice('Buscando dispositivos BLE RGBStudio…');
-    try{final found=await BleProvisioning.scan();notice('Dispositivos encontrados: ${found.length}. El aprovisionamiento WiFi aún no está disponible.');}
-    catch(e){notice('Bluetooth: $e');}
-  }
+  Future<void> scanBle() => addDeviceWizard();
   void startNightlight(int minutes){
     nightTimer?.cancel();nightEnd=DateTime.now().add(Duration(minutes:minutes));
     nightTimer=Timer(Duration(minutes:minutes),(){send({'power':'false'});if(mounted)setState(()=>nightEnd=null);});
@@ -372,7 +367,7 @@ class _StudioShellState extends State<StudioShell>{
       const Divider(),ListTile(contentPadding:EdgeInsets.zero,leading:const Icon(Icons.refresh,color:violet),
         title:const Text('Actualizar estado'),onTap:refresh),
       ListTile(contentPadding:EdgeInsets.zero,leading:const Icon(Icons.bluetooth_searching,color:violet),
-        title:const Text('Buscar por Bluetooth'),subtitle:const Text('Solo detección, sin configuración WiFi'),onTap:scanBle),
+        title:const Text('Buscar por Bluetooth'),subtitle:const Text('Configurar WiFi, nombre y cantidad de LED'),onTap:scanBle),
     ])),
     section('Temporizador local'),
     card(Column(children:[
@@ -384,9 +379,9 @@ class _StudioShellState extends State<StudioShell>{
     mqttPage(),
     section('Acerca de'),
     card(const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Text("Morty's LED · prototipo 0.3",style:TextStyle(fontWeight:FontWeight.bold)),
+      Text("Morty's LED · 0.8.0",style:TextStyle(fontWeight:FontWeight.bold)),
       SizedBox(height:8),Text('Control WiFi local. Sin nube ni cuenta. Escenas almacenadas localmente.',style:TextStyle(color:Colors.white70)),
-      SizedBox(height:8),Text('BLE WiFi, música, segmentos, horarios persistentes y MQTT requieren firmware y desarrollo adicional.',style:TextStyle(color:Colors.amberAccent,fontSize:12)),
+      SizedBox(height:8),Text('La configuración inicial utiliza Bluetooth. El control diario utiliza WiFi local. Música, segmentos y horarios persistentes siguen pendientes.',style:TextStyle(color:Colors.amberAccent,fontSize:12)),
     ])),
   ]);
   @override Widget build(BuildContext context)=>Scaffold(
@@ -401,3 +396,4 @@ class _StudioShellState extends State<StudioShell>{
   );
   @override void dispose(){poll?.cancel();nightTimer?.cancel();super.dispose();}
 }
+

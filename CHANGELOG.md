@@ -1,3 +1,12 @@
+## 0.8.0 — 2026-10-26
+
+- Alta por Bluetooth LE: WiFi, nombre y cantidad de píxeles desde Android.
+- Confirmación de WiFi y almacenamiento en ESP32; recuperación mediante BOOT.
+- Características BLE cifradas, comandos fragmentados y validación de límites.
+- Eliminado el punto de acceso abierto del arranque.
+- Firmware y app deben actualizarse juntos; partición de aplicación de 3 MB (sin OTA).
+- Pruebas de protocolo y del asistente, incluidos fallos y cancelación.
+
 # Historial de versiones — Morty's LED
 
 El número visible en Android procede de `pubspec.yaml` (`versionName+versionCode`). La etiqueta de compilación y el APK deben usar el mismo número.
@@ -36,3 +45,4 @@ El número visible en Android procede de `pubspec.yaml` (`versionName+versionCod
 - Incrementar BUILD en cada entrega instalable; incrementar PATCH para correcciones, MINOR para funciones.
 - No crear una etiqueta Git ni publicar una release hasta que CI termine correctamente.
 - El firmware usa su propio versionado (por ejemplo `0.2.0`) y anuncia `api_version`.
+
