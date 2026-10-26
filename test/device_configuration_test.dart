@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +7,8 @@ import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:esp32_rgb_studio/device_store.dart';
 import 'package:esp32_rgb_studio/main.dart';
+import 'package:esp32_rgb_studio/add_device_wizard.dart';
+import 'package:esp32_rgb_studio/device_api.dart';
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -20,26 +23,78 @@ void main() {
     expect(StudioDevice.fromJson({'id':'legacy','host':'192.168.1.12'}).pixels,isNull);
   });
 
+  testWidgets('Discovery pre-fills the address and controller pixel count', (tester) async {
+    await tester.pumpWidget(MaterialApp(home: AddDeviceWizard(
+      discoverControllers: () async => [
+        DiscoveredController('192.168.1.20', LedState.fromJson({'pixels': 120})),
+      ],
+    )));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('120 píxeles detectados'));
+    await tester.pumpAndSettle();
+    final fields = tester.widgetList<TextFormField>(find.byType(TextFormField)).toList();
+    expect(fields[1].controller!.text, '192.168.1.20');
+    expect(fields[1].readOnly, isTrue);
+    expect(fields[2].controller!.text, '120');
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('Manual mode ignores a late discovery result', (tester) async {
+    final discovery = Completer<List<DiscoveredController>>();
+    await tester.pumpWidget(MaterialApp(home: AddDeviceWizard(
+      discoverControllers: () => discovery.future,
+    )));
+    await tester.pump();
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    await tester.ensureVisible(find.text('Configuración manual'));
+    await tester.tap(find.text('Configuración manual'));
+    await tester.pumpAndSettle();
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    discovery.complete([
+      DiscoveredController('192.168.1.20', LedState.fromJson({'pixels': 120})),
+    ]);
+    await tester.pumpAndSettle();
+    expect(find.byType(TextFormField), findsNWidgets(3));
+    final fields = tester.widgetList<TextFormField>(find.byType(TextFormField)).toList();
+    expect(fields[1].controller!.text, isEmpty);
+    expect(fields[2].controller!.text, isEmpty);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('Closing the wizard ignores a late discovery failure', (tester) async {
+    final discovery = Completer<List<DiscoveredController>>();
+    await tester.pumpWidget(MaterialApp(home: AddDeviceWizard(
+      discoverControllers: () => discovery.future,
+    )));
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox.shrink());
+    discovery.completeError(StateError('Network unavailable'));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Adding an ESP32 validates, sends and saves its LED count', (tester) async {
     var count=1;
     final posted=<Map<String,String>>[];
     await http.runWithClient(() async {
-      await tester.pumpWidget(const StudioApp());
+      await tester.pumpWidget(StudioApp(discoverControllers: () async => []));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Añadir tira'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.widgetWithText(TextField,'Nombre'),'Salón');
-      await tester.enterText(find.byType(TextFormField).at(0),'192.168.1.10');
+      await tester.tap(find.text('Configuración manual'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextFormField,'Nombre de la tira'),'Salón');
+      await tester.enterText(find.byType(TextFormField).at(1),'192.168.1.10');
       for(final invalid in ['', '0', '1025', '2.5', 'abc']) {
-        await tester.enterText(find.byType(TextFormField).at(1),invalid);
-        await tester.ensureVisible(find.text('Guardar controlador'));
-        await tester.tap(find.text('Guardar controlador'));
+        await tester.enterText(find.byType(TextFormField).at(2),invalid);
+        await tester.ensureVisible(find.text('Guardar tira'));
+        await tester.tap(find.text('Guardar tira'));
         await tester.pumpAndSettle();
-        expect(find.text('Introduce un entero entre 1 y 1024'),findsOneWidget);
+        expect(find.text('Entre 1 y 1024 píxeles'),findsOneWidget);
         expect(posted,isEmpty);
       }
-      await tester.enterText(find.byType(TextFormField).at(1),'60');
-      await tester.tap(find.text('Guardar controlador'));
+      await tester.enterText(find.byType(TextFormField).at(2),'60');
+      await tester.tap(find.text('Guardar tira'));
       await tester.pumpAndSettle();
       expect(posted.single,{'pixels':'60'});
       expect(count,60);

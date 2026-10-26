@@ -23,16 +23,17 @@ const builtInScenes=<StudioScene>[
 
 void main(){WidgetsFlutterBinding.ensureInitialized();runApp(const StudioApp());}
 class StudioApp extends StatelessWidget {
-  const StudioApp({super.key});
+  const StudioApp({super.key, this.discoverControllers});
+  final Future<List<DiscoveredController>> Function()? discoverControllers;
   @override Widget build(BuildContext context)=>MaterialApp(
     title:"Morty's LED",debugShowCheckedModeBanner:false,
     theme:ThemeData(useMaterial3:true,brightness:Brightness.dark,scaffoldBackgroundColor:ink,
       colorScheme:ColorScheme.fromSeed(seedColor:violet,brightness:Brightness.dark),
       cardTheme:const CardThemeData(color:panel,margin:EdgeInsets.symmetric(vertical:7)),
       inputDecorationTheme:InputDecorationTheme(filled:true,fillColor:panel,border:OutlineInputBorder(borderRadius:BorderRadius.circular(16),borderSide:BorderSide.none))),
-    home:const StudioShell());
+    home:StudioShell(discoverControllers: discoverControllers));
 }
-class StudioShell extends StatefulWidget {const StudioShell({super.key});@override State<StudioShell> createState()=>_StudioShellState();}
+class StudioShell extends StatefulWidget {const StudioShell({super.key, this.discoverControllers});final Future<List<DiscoveredController>> Function()? discoverControllers;@override State<StudioShell> createState()=>_StudioShellState();}
 class _StudioShellState extends State<StudioShell>{
   int page=0;
   String host='192.168.4.1',deviceName='Controlador LED',message='Sin conectar';
@@ -111,7 +112,7 @@ class _StudioShellState extends State<StudioShell>{
   }
   Future<void> addDeviceWizard() async {
     final device = await Navigator.of(context).push<StudioDevice>(
-      MaterialPageRoute(builder: (_) => const AddDeviceWizard()),
+      MaterialPageRoute(builder: (_) => AddDeviceWizard(discoverControllers: widget.discoverControllers)),
     );
     if (!mounted || device == null) return;
     setState(() {

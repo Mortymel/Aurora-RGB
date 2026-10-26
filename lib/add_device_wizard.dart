@@ -11,7 +11,8 @@ class DiscoveredController {
 }
 
 class AddDeviceWizard extends StatefulWidget {
-  const AddDeviceWizard({super.key});
+  const AddDeviceWizard({super.key, this.discoverControllers});
+  final Future<List<DiscoveredController>> Function()? discoverControllers;
   @override
   State<AddDeviceWizard> createState() => _AddDeviceWizardState();
 }
@@ -27,6 +28,18 @@ class _AddDeviceWizardState extends State<AddDeviceWizard> {
   String? error;
   DiscoveredController? selected;
   int scanGeneration = 0;
+  MDnsClient? activeMdns;
+
+  void cancelScan() {
+    scanGeneration++;
+    activeMdns?.stop();
+    activeMdns = null;
+  }
+
+  void useManualConfiguration() {
+    cancelScan();
+    setState(() { scanning = false; manual = true; selected = null; });
+  }
 
   @override
   void initState() {
@@ -35,11 +48,30 @@ class _AddDeviceWizardState extends State<AddDeviceWizard> {
   }
 
   Future<void> scan() async {
-    final generation = ++scanGeneration;
+    cancelScan();
+    final generation = scanGeneration;
     setState(() { scanning = true; error = null; found.clear(); });
+    final discover = widget.discoverControllers;
+    if (discover != null) {
+      try {
+        final devices = await discover();
+        if (mounted && generation == scanGeneration) {
+          setState(() => found.addAll(devices));
+        }
+      } catch (_) {
+        if (mounted && generation == scanGeneration) {
+          setState(() => error = 'No se pudo buscar en esta red. Usa la configuración manual.');
+        }
+      } finally {
+        if (mounted && generation == scanGeneration) setState(() => scanning = false);
+      }
+      return;
+    }
     final mdns = MDnsClient();
+    activeMdns = mdns;
     try {
       await mdns.start();
+      if (!mounted || generation != scanGeneration) return;
       final hosts = <String>{};
       final services = mdns.lookup<PtrResourceRecord>(
         ResourceRecordQuery.serverPointer('_http._tcp.local'),
@@ -73,12 +105,15 @@ class _AddDeviceWizardState extends State<AddDeviceWizard> {
       }
     } finally {
       mdns.stop();
+      if (identical(activeMdns, mdns)) activeMdns = null;
       if (mounted && generation == scanGeneration) setState(() => scanning = false);
     }
   }
 
   void choose(DiscoveredController device) {
+    cancelScan();
     setState(() {
+      scanning = false;
       selected = device;
       ip.text = device.host;
       pixels.text = device.state.pixels.toString();
@@ -100,7 +135,7 @@ class _AddDeviceWizardState extends State<AddDeviceWizard> {
 
   @override
   void dispose() {
-    scanGeneration++;
+    cancelScan();
     name.dispose();
     ip.dispose();
     pixels.dispose();
@@ -139,7 +174,7 @@ class _AddDeviceWizardState extends State<AddDeviceWizard> {
         const SizedBox(height: 12),
         const Text('¿Es una ESP32 nueva? Conéctate desde los ajustes WiFi del teléfono a MortysLED-XXXX y abre http://192.168.4.1/setup en el navegador. Configura allí tu WiFi, vuelve a tu red y pulsa Buscar de nuevo.'),
         const SizedBox(height: 12),
-        TextButton(onPressed: () => setState(() {manual = true; selected = null;}), child: const Text('Configuración manual')),
+        TextButton(onPressed: useManualConfiguration, child: const Text('Configuración manual')),
       ] else ...[
         Form(key: form, child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           if (selected != null) ...[
