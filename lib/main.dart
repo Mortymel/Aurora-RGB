@@ -113,7 +113,7 @@ class _StudioShellState extends State<StudioShell>{
     final name=TextEditingController(text:existing?.name??'');
     final pixels=TextEditingController(text:existing?.pixels?.toString()??(existing?.id==selectedId&&state!=null&&state!.pixels>0?'${state!.pixels}':''));
     final formKey=GlobalKey<FormState>();
-    final result=await showModalBottomSheet<bool>(context:context,isScrollControlled:true,showDragHandle:true,
+    final route=ModalBottomSheetRoute<bool>(isScrollControlled:true,showDragHandle:true,
       builder:(ctx)=>Padding(padding:EdgeInsets.fromLTRB(24,12,24,MediaQuery.viewInsetsOf(ctx).bottom+32),
         child:SingleChildScrollView(child:Form(key:formKey,child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
           Text(existing==null?'Añadir controlador':'Editar controlador',style:Theme.of(ctx).textTheme.headlineSmall),
@@ -134,6 +134,10 @@ class _StudioShellState extends State<StudioShell>{
           SizedBox(width:double.infinity,child:FilledButton(onPressed:(){if(formKey.currentState!.validate())Navigator.pop(ctx,true);},
             child:const Text('Guardar controlador'))),
         ])))));
+    final result=await Navigator.of(context).push(route);
+    // The pop result arrives before the closing animation has removed the fields.
+    await route.completed;
+    if(!mounted){ip.dispose();name.dispose();pixels.dispose();return;}
     if(result==true){
       final address=ip.text.trim();
       final uri=Uri.tryParse(address.contains('://')?address:'http://$address');
