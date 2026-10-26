@@ -5,6 +5,7 @@ import 'device_api.dart';
 import 'ble_provisioning.dart';
 import 'scene_store.dart';
 import 'device_store.dart';
+import 'add_device_wizard.dart';
 
 const ink=Color(0xFF101216);
 const panel=Color(0xFF1D2026);
@@ -108,6 +109,25 @@ class _StudioShellState extends State<StudioShell>{
     setState(()=>saved=[...saved,StudioScene(name,s.color,s.brightness,s.effect,s.speed)]);
     await SceneStore.save(saved);notice('Escena guardada en este teléfono');
   }
+  Future<void> addDeviceWizard() async {
+    final device = await Navigator.of(context).push<StudioDevice>(
+      MaterialPageRoute(builder: (_) => const AddDeviceWizard()),
+    );
+    if (!mounted || device == null) return;
+    setState(() {
+      devices = [...devices, device];
+      selectedId = device.id;
+      host = device.host;
+      deviceName = device.name;
+      api = null;
+      state = null;
+      message = 'Sin conectar';
+      devicePage = devices.length - 1;
+    });
+    await DeviceStore.save(devices);
+    await DeviceStore.select(device.id);
+    await connect();
+  }
   Future<void> editDevice({StudioDevice? existing})async{
     final ip=TextEditingController(text:existing?.host??'');
     final name=TextEditingController(text:existing?.name??'');
@@ -180,7 +200,7 @@ class _StudioShellState extends State<StudioShell>{
   }
   Widget devicesPage()=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     Row(children:[Expanded(child:Text('Controladores',style:Theme.of(context).textTheme.titleLarge)),
-      FilledButton.icon(onPressed:()=>editDevice(),icon:const Icon(Icons.add),label:const Text('Añadir'))]),
+      FilledButton.icon(onPressed:addDeviceWizard,icon:const Icon(Icons.add),label:const Text('Añadir'))]),
     const SizedBox(height:10),
     if(devices.isEmpty)card(const ListTile(leading:Icon(Icons.router_outlined),
       title:Text('No hay controladores'),subtitle:Text('Añade una ESP32 conectada a tu red WiFi.'))),
@@ -237,7 +257,7 @@ class _StudioShellState extends State<StudioShell>{
       const Text('Tus luces',style:TextStyle(fontSize:19,fontWeight:FontWeight.w600)),
       const SizedBox(height:8),const Text('Añade tu primera tira.',style:TextStyle(color:Colors.white60)),
       const SizedBox(height:12),
-      FilledButton.icon(onPressed:()=>editDevice(),icon:const Icon(Icons.add),label:const Text('Añadir tira')),
+      FilledButton.icon(onPressed:addDeviceWizard,icon:const Icon(Icons.add),label:const Text('Añadir tira')),
     ]));
     final currentIndex=devices.indexWhere((d)=>d.id==selectedId);
     return Column(children:[
