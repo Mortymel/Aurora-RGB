@@ -279,7 +279,9 @@ void setup() {
   effect=constrain(prefs.getUChar("effect",0),0,EFFECT_COUNT-1);
   colorValue=prefs.getUInt("color",0x83D9BC);
   pixelCount=constrain(prefs.getUShort("pixels",LED_COUNT),1,LED_MAX_PIXELS);
-  deviceId=String((uint32_t)(ESP.getEfuseMac()&0xFFFFFF),HEX);
+  char fullDeviceId[13];
+  snprintf(fullDeviceId, sizeof(fullDeviceId), "%012llx", (unsigned long long)(ESP.getEfuseMac() & 0xFFFFFFFFFFFFULL));
+  deviceId = fullDeviceId; // Use all 48 MAC bits, not the shared manufacturer prefix.
   deviceName=prefs.getString("name","Morty's LED");
   JsonDocument setupDoc;
   const bool hasSavedSetup = loadSavedSetup(setupDoc);
