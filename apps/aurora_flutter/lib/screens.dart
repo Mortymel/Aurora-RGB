@@ -1,3 +1,4 @@
+import 'effect_card.dart';
 import 'package:flutter/material.dart';
 import 'controller.dart';
 import 'editors.dart';
@@ -550,43 +551,32 @@ class _AuroraHomeState extends State<AuroraHome> {
             padding: EdgeInsets.all(20),
             child: Text('No hay coincidencias.'),
           ),
-        ...visible.map(
-          (name) => ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(
-                  colors: [
-                    hue(effectNames.indexOf(name) / 32),
-                    hue(effectNames.indexOf(name) / 32 + .25),
-                  ],
-                ),
-              ),
-            ),
-            title: Text(name),
-            subtitle: Text(
-              name == 'Estrobo'
-                  ? 'Destellos rápidos'
-                  : effectGroup(effectNames.indexOf(name)),
-            ),
-            selected: c.light.effect == name,
-            onTap: ready
-                ? () => act(
-                    () => c.command('light', {'state': 'ON', 'effect': name}),
-                  )
-                : null,
-            trailing: IconButton(
-              tooltip: c.favorites.contains(name)
-                  ? 'Quitar favorito $name'
-                  : 'Añadir favorito $name',
-              onPressed: () => act(() => c.favorite(name)),
-              icon: Icon(
-                c.favorites.contains(name) ? Icons.star : Icons.star_outline,
-              ),
-            ),
+        LayoutBuilder(
+          builder: (context, constraints) => Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: visible
+                .map(
+                  (name) => SizedBox(
+                    width: (constraints.maxWidth - 12) / 2,
+                    child: EffectCard(
+                      name: name,
+                      light: c.light,
+                      selected: c.light.effect == name,
+                      favorite: c.favorites.contains(name),
+                      onFavorite: () => act(() => c.favorite(name)),
+                      onApply: ready
+                          ? () => act(
+                              () => c.command('light', {
+                                'state': 'ON',
+                                'effect': name,
+                              }),
+                            )
+                          : null,
+                    ),
+                  ),
+                )
+                .toList(),
           ),
         ),
         if (filter == 'Favoritos' && c.scenes.isNotEmpty) ...[
@@ -800,11 +790,11 @@ class _AuroraHomeState extends State<AuroraHome> {
         tile(
           Icons.info_outline,
           'Acerca de Aurora',
-          'Android · Flutter · 1.0.0',
+          'Android · Flutter · 1.0.1',
           () => showAboutDialog(
             context: context,
             applicationName: 'Aurora',
-            applicationVersion: '1.0.0',
+            applicationVersion: '1.0.1',
             children: [
               const Text(
                 'App nativa para ESP32 con LEDWeb 1.2. La vista previa aproxima el efecto; la esfera representa el color seleccionado. Control local por Wi-Fi. Los horarios pertenecen a la ESP32.',

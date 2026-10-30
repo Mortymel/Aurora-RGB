@@ -2,6 +2,60 @@ import 'package:flutter/material.dart';
 import 'controller.dart';
 import 'models.dart';
 
+class PasswordSetting extends StatefulWidget {
+  const PasswordSetting({
+    super.key,
+    required this.saved,
+    required this.onChanged,
+  });
+  final bool saved;
+  final ValueChanged<String> onChanged;
+  @override
+  State<PasswordSetting> createState() => _PasswordSettingState();
+}
+
+class _PasswordSettingState extends State<PasswordSetting> {
+  bool editing = false, visible = false;
+  @override
+  Widget build(BuildContext context) {
+    if (widget.saved && !editing) {
+      return ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: const Icon(Icons.lock_outline),
+        title: const Text('Contraseña configurada'),
+        trailing: TextButton(
+          onPressed: () => setState(() => editing = true),
+          child: const Text('Cambiar'),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
+        obscureText: !visible,
+        autocorrect: false,
+        enableSuggestions: false,
+        onChanged: widget.onChanged,
+        decoration: InputDecoration(
+          labelText: 'Contraseña',
+          helperText: widget.saved
+              ? 'Si no escribes una nueva, seguirá la actual.'
+              : null,
+          suffixIcon: IconButton(
+            tooltip: visible ? 'Ocultar contraseña' : 'Mostrar contraseña',
+            onPressed: () => setState(() => visible = !visible),
+            icon: Icon(
+              visible
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 Future<void> editSheet(
   BuildContext context, {
   required String title,
@@ -122,6 +176,9 @@ Widget entry(
     autocorrect: false,
     keyboardType: keyboard,
     maxLength: maxLength,
+    buildCounter:
+        (context, {required currentLength, required isFocused, maxLength}) =>
+            null,
     onChanged: change,
     validator: required
         ? (v) => (v ?? '').trim().isEmpty ? 'Completa este campo' : null
@@ -532,19 +589,18 @@ Future<void> wifiEditor(BuildContext context, AuroraController c) async {
           (v) => ssid = v,
           maxLength: 32,
         ),
-        entry(
-          'Nueva contraseña (vacío: conservar)',
-          password,
-          (v) => password = v,
-          secret: true,
-          maxLength: 63,
-        ),
-        CheckboxListTile(
+        SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text('Red abierta: borrar contraseña guardada'),
-          value: clear,
-          onChanged: (v) => set(() => clear = v!),
+          title: const Text('Red con contraseña'),
+          subtitle: Text(clear ? 'Red abierta' : 'Conexión protegida'),
+          value: !clear,
+          onChanged: (v) => set(() => clear = !v),
         ),
+        if (!clear)
+          PasswordSetting(
+            saved: c.config!['wifi_password_set'] == true,
+            onChanged: (v) => password = v,
+          ),
         const Text(
           'Al cambiar de red puede cambiar la IP. Si no conecta, utiliza la red LEDWeb-… para recuperar el acceso.',
           style: TextStyle(fontSize: 12),
@@ -554,7 +610,7 @@ Future<void> wifiEditor(BuildContext context, AuroraController c) async {
     ),
     save: () => c.command('config', {
       'ssid': ssid,
-      'wifi_password': password,
+      'wifi_password': clear ? '' : password,
       'clear_wifi_password': clear,
     }),
   );
@@ -594,19 +650,18 @@ Future<void> mqttEditor(BuildContext context, AuroraController c) async {
           required: true,
         ),
         entry('Usuario MQTT', user, (v) => user = v, maxLength: 128),
-        entry(
-          'Nueva contraseña (vacío: conservar)',
-          password,
-          (v) => password = v,
-          secret: true,
-          maxLength: 128,
-        ),
-        CheckboxListTile(
+        SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text('Borrar contraseña guardada'),
-          value: clear,
-          onChanged: (v) => set(() => clear = v!),
+          title: const Text('Usar usuario y contraseña'),
+          subtitle: Text(clear ? 'Sin autenticación' : 'Acceso al broker MQTT'),
+          value: !clear,
+          onChanged: (v) => set(() => clear = !v),
         ),
+        if (!clear)
+          PasswordSetting(
+            saved: c.config!['mqtt_password_set'] == true,
+            onChanged: (v) => password = v,
+          ),
         const Text(
           'Servidor vacío desactiva MQTT. La ESP32 conecta al broker; la app guarda su configuración. Conexión local sin TLS.',
           style: TextStyle(fontSize: 12),
@@ -623,8 +678,8 @@ Future<void> mqttEditor(BuildContext context, AuroraController c) async {
       await c.command('config', {
         'mqtt_host': host.trim(),
         'mqtt_port': n,
-        'mqtt_user': user,
-        'mqtt_password': password,
+        'mqtt_user': clear ? '' : user,
+        'mqtt_password': clear ? '' : password,
         'clear_mqtt_password': clear,
       });
     },

@@ -1,5 +1,9 @@
 # Aurora para Android — Flutter
 
+## Actualización 1.0.1
+
+Catálogo con tarjetas y muestras de colores/patrones generadas por el renderizador de cada efecto. La esfera mantiene su volumen y usa texto sin emoji. Los formularios ocultan contadores de caracteres y muestran las contraseñas guardadas como «Contraseña configurada», con una acción «Cambiar». Las redes abiertas y MQTT sin autenticación se eligen explícitamente; dejar un campo sin editar conserva la clave existente.
+
 Aplicación nativa nueva e independiente, con el diseño Aurora. **No es una WebView ni un acceso directo a la página web.** Su identificador Android es `com.mortymel.aurora_led`; puede coexistir con la app anterior.
 
 ## Funciones

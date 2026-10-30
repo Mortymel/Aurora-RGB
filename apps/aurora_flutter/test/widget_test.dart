@@ -97,6 +97,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byType(StripPreview), findsOneWidget);
     expect(find.text('Color fijo'), findsWidgets);
+    await tester.runAsync(() async {
+      final image = await boundary.toImage(pixelRatio: 1);
+      final data = await image.toByteData(format: ui.ImageByteFormat.png);
+      File(
+        'build/screenshots/aurora-effects.png',
+      ).writeAsBytesSync(data!.buffer.asUint8List());
+      image.dispose();
+    });
     expect(tester.takeException(), isNull);
     tester.view.physicalSize = const Size(320, 740);
     await tester.tap(find.text('Mi luz'));

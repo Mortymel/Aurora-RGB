@@ -182,7 +182,7 @@ class ColorOrb extends StatelessWidget {
             Align(
               alignment: const Alignment(0, .65),
               child: Text(
-                'Cambiar color ↗',
+                'Elegir color',
                 style: TextStyle(
                   fontSize: 12,
                   color: color.computeLuminance() > .55

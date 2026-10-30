@@ -245,6 +245,14 @@ class AuroraController extends ChangeNotifier {
         config = {...body}
           ..remove('wifi_password')
           ..remove('mqtt_password');
+        for (final type in ['wifi', 'mqtt']) {
+          if (body['clear_${type}_password'] == true) {
+            config!['${type}_password_set'] = false;
+          }
+          if ((body['${type}_password'] as String? ?? '').isNotEmpty) {
+            config!['${type}_password_set'] = true;
+          }
+        }
         if (result['reconnecting'] == true) {
           connected = false;
           error =

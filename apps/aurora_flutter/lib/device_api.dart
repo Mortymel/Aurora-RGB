@@ -136,6 +136,14 @@ class DemoApi implements DeviceApi {
           state.addAll(body);
         case 'config':
           config.addAll(body);
+          for (final type in ['wifi', 'mqtt']) {
+            if (body['clear_${type}_password'] == true) {
+              config['${type}_password_set'] = false;
+            }
+            if ((body['${type}_password'] as String? ?? '').isNotEmpty) {
+              config['${type}_password_set'] = true;
+            }
+          }
           config.remove('wifi_password');
           config.remove('mqtt_password');
           state['count'] = config['count'];
