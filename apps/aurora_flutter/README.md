@@ -1,70 +1,36 @@
-# Aurora para Android — Flutter
+# Aurora Android 1.1.0
 
-## Actualización 1.1.0 / LEDWeb 1.3
+App nativa Flutter para ESP32 con LEDWeb 1.3.0. Código actual: [rama Aurora](https://github.com/Mortymel/ESP32-RGB-Studio-/tree/codex/aurora-flutter-android/apps/aurora_flutter). Integración en [PR #1](https://github.com/Mortymel/ESP32-RGB-Studio-/pull/1); no asumir que el código de la app está fusionado en main. El Flutter de la raíz es heredado.
 
-- Búsqueda mDNS de controladores LEDWeb desde la bienvenida o Mis controladores; mantiene alta manual por IP si el router bloquea multicast. Android mantiene un bloqueo multicast solo durante la búsqueda.
-- Color en vivo: conserva el último gesto y limita los envíos; al desconectar o cambiar de controlador descarta órdenes pendientes. Se puede desactivar dentro del selector.
-- Deshacer el último cambio de luz, recuperando el estado confirmado anterior.
-- Rechazo de horarios opuestos para la misma hora/día en la app y en el firmware.
-- Control y recuperación: invertir dirección, limitar brillo físico, transición de encendido/apagado entre 0 y 5 segundos, recuperar opcionalmente el estado guardado tras un corte. Por defecto sigue arrancando apagada. El estado se persiste después de 1,5 segundos sin cambios; un corte inmediato puede conservar el estado guardado anterior.
-- Diagnóstico de IP, señal Wi-Fi, reloj, MQTT, versión, tiempo encendido y memoria disponible.
-- Web flasher con navegación y aspecto Aurora, modo claro/oscuro según el sistema y pasos USB/Wi-Fi.
+## Uso
 
-La búsqueda multicast y las funciones eléctricas requieren comprobación en el teléfono, router y placa reales. Esta entrega no incluye actualización OTA, segmentos, grupos, widgets ni firma de distribución para Google Play. El APK sigue siendo una compilación de prueba; se recomienda configurar una clave privada estable de distribución antes de publicar actualizaciones permanentes.
+Rueda de color, vista en vivo, 32 efectos, favoritos y ambientes, deshacer, cuatro horarios, cuenta atrás, varios controladores, IP/mDNS, Wi-Fi/MQTT y diagnóstico. LEDWeb 1.3 añade límite de brillo, dirección invertida, transición de encendido/apagado y recuperación optativa del estado persistido. La demo permite navegar sin placa; sus acciones se evalúan con la app activa.
 
-## Actualización 1.0.1
+[Instalar firmware](https://mortymel.github.io/ESP32-RGB-Studio-/) · [Guía completa](https://github.com/Mortymel/ESP32-RGB-Studio-/blob/main/docs/INSTALACION.md) · [API](https://github.com/Mortymel/ESP32-RGB-Studio-/blob/main/docs/API.md) · [Auditoría](AUDIT.md).
 
-Catálogo con tarjetas y muestras de colores/patrones generadas por el renderizador de cada efecto. La esfera mantiene su volumen y usa texto sin emoji. Los formularios ocultan contadores de caracteres y muestran las contraseñas guardadas como «Contraseña configurada», con una acción «Cambiar». Las redes abiertas y MQTT sin autenticación se eligen explícitamente; dejar un campo sin editar conserva la clave existente.
+## Compilar
 
-Aplicación nativa nueva e independiente, con el diseño Aurora. **No es una WebView ni un acceso directo a la página web.** Su identificador Android es `com.mortymel.aurora_led`; puede coexistir con la app anterior.
+Flutter 3.47.8 / Dart 3.13.7, Java 17 y Android SDK. Android mínimo API 24 (7.0), destino API 36. Desde la rama de Aurora, dentro de apps/aurora_flutter, en Bash:
 
-## Funciones
-
-- Mi luz: esfera con volumen que conserva el RGB, colores rápidos, brillo, velocidad, encendido y temporizador.
-- Efectos: 32 efectos de LEDWeb, previsualización animada aproximada, categorías, búsqueda, favoritos y hasta 50 ambientes guardados.
-- Horarios: cuatro reglas semanales ejecutadas por la ESP32, sincronización de reloj y zona UTC fija.
-- Ajustes: número de píxeles, GPIO admitidos por la placa, RGB/GRB, Wi-Fi y MQTT con guía para Home Assistant.
-- Varios controladores por IP o nombre `.local`, edición de credenciales y eliminación del teléfono.
-- Contraseñas en almacenamiento protegido de Android; copias de seguridad de los datos desactivadas.
-- Modo demo integrado para probar todas las pantallas sin placa. La vista previa solo aparece en Mi luz y Efectos.
-- Tema claro, oscuro o automático. Vista previa detenida cuando el sistema solicita reducir animaciones.
-
-## Conectar tu ESP32
-
-1. Instala **LEDWeb 1.2** en la placa. El firmware antiguo de Morty's LED 0.8 utiliza otra API y no es compatible con esta app.
-2. Conecta el teléfono al AP `LEDWeb-…`. La clave inicial es `tiraesp32`, salvo que la hayas cambiado al compilar.
-3. Abre Aurora → Añadir ESP32. Usa `192.168.4.1`, usuario `admin` y la contraseña configurada en el firmware (inicial: `tiraesp32`).
-4. En Ajustes → Wi-Fi, guarda tu red de 2,4 GHz. Vuelve a conectar el teléfono a esa red.
-5. Obtén la nueva IP de la ESP32 en el router/monitor serie y actualízala en Ajustes → IP y credenciales. Conviene reservar esa IP en el router.
-
-La app habla directamente con el controlador mediante HTTP JSON y autenticación Basic. No requiere nube ni un servidor adicional. MQTT es una conexión entre ESP32 y broker; la app configura los datos del broker a través del controlador.
-
-## Ejecutar y compilar
-
-Herramienta verificada: Flutter 3.47.8 / Dart 3.13.7. Android mínimo 7.0 (API 24), destino API 36 en este SDK. Para compilar localmente se necesita también Android SDK y Java 17.
-
-```sh
-cd apps/aurora_flutter
+~~~sh
+cp pubspec.lock pubspec.lock.saved
 flutter create --platforms=android --org com.mortymel --project-name aurora_led --no-pub .
-python scripts/configure_android.py
+mv pubspec.lock.saved pubspec.lock
+python3 scripts/configure_android.py
 flutter pub get --enforce-lockfile
 flutter analyze
 flutter test
-flutter run
-# APK optimizado para pruebas:
 flutter build apk --release
-```
+~~~
 
-El APK queda en `build/app/outputs/flutter-apk/app-release.apk`. El workflow `.github/workflows/aurora-android.yml` ejecuta análisis, pruebas y compilación, comprueba la firma y publica el APK con SHA-256 como artefacto de Actions.
+En PowerShell usa Copy-Item y Move-Item para conservar/restaurar el lockfile. El script Python configura manifiesto, icono, exclusión de backup y el canal nativo para el bloqueo multicast. No omitirlo al regenerar Android.
 
-**Firma de prueba:** la configuración generada por Flutter firma este APK con la clave de depuración del entorno. No es una publicación en Google Play. Una compilación hecha en otro entorno puede tener otra firma y exigir desinstalar la anterior (se perderán sus datos locales). Para distribución y actualizaciones estables hay que configurar y conservar una clave de firma propia fuera del repositorio.
+Salida: build/app/outputs/flutter-apk/app-release.apk. Identidad: com.mortymel.aurora_led, versión 1.1.0+4. El workflow aurora-android.yml verifica análisis, pruebas, firma, versión y SHA-256 y publica el artefacto Aurora-Flutter-Android-1.1.0.
 
-## Estructura
+## Seguridad y límites
 
-`models.dart`: protocolo y validación. `device_api.dart`: HTTP con timeout, sin redirecciones ni reintentos de órdenes. `controller.dart`: estado, aislamiento de dispositivos, persistencia y sondeo. `app_store.dart`: almacenamiento protegido. `screens.dart` y `editors.dart`: widgets nativos. `light_visuals.dart`: esfera y efectos dibujados por Flutter.
+Las credenciales se guardan con flutter_secure_storage. Android declara Internet, estado de red/Wi-Fi y multicast; no necesita Bluetooth, ubicación, cámara ni micrófono. HTTP Basic en la LAN y MQTT sin TLS no cifran el tráfico. No exponer el controlador a Internet.
 
-## Comprobaciones y límites
+El APK utiliza firma de prueba del entorno: no hay una clave estable de distribución ni publicación en Google Play. Otra firma puede exigir reinstalar y perder preferencias locales. No publicar keystores o contraseñas en Git.
 
-Consulta [AUDIT.md](AUDIT.md). Las pruebas usan el motor de Flutter y servidores HTTP locales/simulados. No sustituyen una prueba en tu teléfono con la tira y un broker real.
-
-Referencias oficiales: [Flutter](https://docs.flutter.dev/), [almacenamiento protegido](https://pub.dev/packages/flutter_secure_storage), [Android: seguridad de red](https://developer.android.com/privacy-and-security/security-config).
+16 pruebas aprobadas y análisis sin incidencias. Falta validar en teléfono/router/placa/tira y broker reales. No se incluyen OTA, grupos, segmentos, widgets, horarios solares ni escena específica por horario.

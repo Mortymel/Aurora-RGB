@@ -1,35 +1,24 @@
-# Auditoría — Aurora Android 1.0.0
+# Auditoría de Aurora 1.1 / LEDWeb 1.3
 
-29 de octubre de 2026. Implementación Flutter nueva; no reutiliza la UI Android anterior ni carga HTML en una WebView.
+Referencia: 30 de octubre de 2026. Revisión de código, compilación y pruebas automatizadas; no certificación de seguridad ni validación física.
 
-## Controles implementados
+## Evidencia
 
-- Alta de controladores solo después de consultar configuración y estado compatibles con LEDWeb. Credenciales se guardan con `flutter_secure_storage`, no en texto plano en preferencias ni en archivos del proyecto.
-- Sin registros de contraseñas. Copias de seguridad y transferencia de datos Android excluidas para no transportar material cifrado a otra clave de dispositivo.
-- HTTP Basic hacia la dirección elegida; redirecciones deshabilitadas para no reenviar credenciales a otro servidor.
-- Timeout de 8 segundos, cierre de conexión al expirar, respuesta limitada a 64 KiB. No se reenvían automáticamente órdenes de encendido/configuración.
-- Estado confirmado por ESP32; error visible al fallar. Sondeo periódico para reconectar y captar cambios hechos desde Home Assistant.
-- Cada respuesta de sondeo se comprueba contra la generación del dispositivo seleccionado y la revisión de comandos. Las escrituras bloquean cambios de controlador hasta completar la operación.
-- Lectura de configuración reciente antes de aplicar cambios. Formularios validan puerto, color, píxeles y días. La placa decide qué GPIO admite.
-- Cancelación del sondeo cuando la app pasa a segundo plano. Horarios y temporizadores reales se ejecutan en la ESP32.
-- La esfera aplica el mismo sombreado a los tres canales. Los efectos se dibujan por Flutter y respetan movimiento reducido.
-- Permisos Android: Internet y estado de red. No se solicita cámara, micrófono, ubicación ni Bluetooth.
+- 16 pruebas Flutter aprobadas: API/autenticación local, timeout, redirecciones, validación, persistencia de prueba, aislamiento de controladores, recuperación, color y MQTT en widgets, deshacer, último gesto agrupado y horarios contradictorios.
+- flutter analyze sin incidencias; APK Android compilado, firma de prueba comprobada y SHA-256 contrastado tras descargar.
+- LEDWeb 1.3 compilado para ESP32-C6 y ESP32 clásico. Imágenes verificadas por cabeceras, particiones, familia, 4 MB y hashes.
+- Flasher público comprobado en Chrome: carga de ESP Web Tools, manifiesto 1.3, dos familias y ausencia de desbordamiento a 390/1200 px. Hashes de ambos binarios públicos contrastados.
 
-## Pruebas
+Evidencia reproducible: [Actions del repositorio](https://github.com/Mortymel/ESP32-RGB-Studio-/actions). Las pruebas Flutter usan servidores locales/simuladores; no demuestran control de la tira física. Los artefactos expiran según la retención del workflow.
 
-`flutter analyze` y `flutter test` son requisitos del workflow antes de generar el APK. Los tests cubren validación de dirección/protocolo, servidor HTTP real local con autenticación y JSON, rechazo 401/redirecciones, timeout sin repetición, persistencia con almacén de prueba, cambios de controlador con respuesta retrasada, recuperación de conexión, demo y navegación nativa.
+## Controles
 
-La prueba de widgets comprueba las cuatro secciones, visibilidad de la tira, color y formulario MQTT, ausencia de excepciones en 390/320 píxeles y genera `build/screenshots/aurora-native.png`. Esa captura corresponde a widgets Flutter, no a la demo web.
+Credenciales protegidas en Android y backup/transferencia de datos excluidos. HTTP sin redirecciones y con respuesta limitada. Escrituras fallidas no reenviadas automáticamente. Las respuestas antiguas no se aplican a otro controlador. Vista en vivo agrupa entradas y descarta pendientes al cerrar/cambiar de controlador. Contradicciones de horarios se rechazan en app y placa. Arranque apagado inicial; recuperación optativa y límite físico de brillo en la ESP32.
 
-## Límites pendientes de validación física
+## Pendiente
 
-- No se ha probado en el teléfono del usuario ni con su ESP32/XGB1338. El análisis estático y los tests no demuestran compatibilidad eléctrica o funcionamiento en todos los fabricantes Android.
-- HTTP y MQTT 1883 no cifran el tráfico de la LAN. Mantener el controlador en una red de confianza y cambiar claves iniciales en el firmware. No exponerlo a Internet.
-- Falta probar MQTT Discovery y control desde Home Assistant real.
-- No hay descubrimiento automático ni aprovisionamiento BLE; se añade IP/.local y la primera configuración usa el AP de la ESP32. Algunos routers no resuelven `.local`; usar la IP en ese caso.
-- La app necesita LEDWeb 1.2; no es compatible con la API del firmware antiguo 0.8.
-- Las reglas semanales usan UTC fijo sin cambio estacional automático. La cuenta atrás se pierde al reiniciar la ESP32. En la demo se evalúan al consultar el estado con la app activa.
-- Dos clientes externos pueden sobrescribir su configuración mutuamente; no existe versionado transaccional entre teléfonos y otros clientes.
-- El APK de prueba usa la firma generada por el entorno Flutter. Una firma estable de distribución y Google Play requieren preparación adicional; no se incluyen claves privadas en Git.
+Prueba en el teléfono/router/ESP32/XGB1338 real; descubrimiento multicast en la LAN del usuario; orden RGB/GRB, nivel lógico de datos, alimentación; MQTT Discovery y disponibilidad con un broker real; validación de transiciones y persistencia tras cortes.
 
-La compilación de Android y su artefacto deben comprobarse en el workflow Aurora Flutter Android. No interpretar la mera existencia del workflow como una compilación exitosa.
+HTTP Basic y MQTT 1883 no cifran tráfico. NVS no tiene cifrado adicional. Las claves iniciales son conocidas y se cambian al compilar. El APK carece de firma estable de distribución; reinstalar puede perder preferencias. No hay bloqueo/versionado entre clientes externos que editen simultáneamente la configuración. UTC es fijo, la cuenta atrás se pierde al reiniciar y no hay OTA.
+
+[Seguridad](https://github.com/Mortymel/ESP32-RGB-Studio-/blob/main/SECURITY.md) · [Hardware](https://github.com/Mortymel/ESP32-RGB-Studio-/blob/main/docs/HARDWARE.md) · [Trabajo pendiente](https://github.com/Mortymel/ESP32-RGB-Studio-/blob/main/docs/ROADMAP.md).
