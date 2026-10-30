@@ -12,7 +12,9 @@ Si no entra en descarga, mantén BOOT, pulsa RESET y suelta BOOT cuando empiece 
 
 ## APK
 
-En [Actions](https://github.com/Mortymel/ESP32-RGB-Studio-/actions?query=workflow%3A%22Aurora+Flutter+Android%22), abre una ejecución correcta de Aurora Flutter Android y descarga el artefacto `Aurora-Flutter-Android-1.1.0`. Extrae e instala `app-release.apk`. Autoriza la instalación desde esa fuente si Android lo solicita. Puedes entrar en Probar sin placa.
+Abre [la última versión en Releases](https://github.com/Mortymel/ESP32-RGB-Studio-/releases/latest). En Assets descarga el archivo `.apk` y, si quieres comprobarlo, su `.sha256`. Instala el APK en Android y autoriza esa fuente si se solicita. Puedes entrar en Probar sin placa. Cada release identifica la compilación y el commit de origen.
+
+El workflow Publish Aurora APK Release publica automáticamente los APK verificados de compilaciones correctas por push a main o a la rama de Aurora. Las compilaciones de pull requests no se promocionan por ese evento. Actions conserva sus artefactos temporales como alternativa.
 
 El APK tiene firma de prueba. Si una versión anterior tiene otra firma, Android puede rechazar la actualización. Desinstalar elimina las credenciales y preferencias locales: anota las direcciones y asegúrate de conocer tus claves antes de hacerlo. No se proporciona todavía actualización estable desde Google Play.
 

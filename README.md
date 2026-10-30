@@ -7,7 +7,7 @@ Aurora es una app Android nativa hecha con Flutter, acompañada por el firmware 
 ## Empezar
 
 1. [Instala LEDWeb con el web flasher](https://mortymel.github.io/ESP32-RGB-Studio-/) desde Chrome/Edge de escritorio y un cable USB de datos.
-2. Descarga el APK del workflow [Aurora Flutter Android](https://github.com/Mortymel/ESP32-RGB-Studio-/actions?query=workflow%3A%22Aurora+Flutter+Android%22). El artefacto se llama `Aurora-Flutter-Android-1.1.0`; contiene el APK y su SHA-256. GitHub puede pedir iniciar sesión y los artefactos caducan a los 30 días. No hay una publicación en Google Play.
+2. [Descarga el APK desde Releases](https://github.com/Mortymel/ESP32-RGB-Studio-/releases/latest). En Assets elige el archivo `.apk`; el archivo `.sha256` permite comprobar su integridad. Las compilaciones correctas de Aurora por push a main o a su rama de trabajo se publican automáticamente. Los artefactos temporales de Actions se conservan como alternativa; no hay publicación en Google Play.
 3. Conecta el teléfono a `LEDWeb-…` (clave inicial `tiraesp32`). En Aurora añade `192.168.4.1`, usuario `admin` y esa contraseña, salvo que las cambiaste al compilar.
 4. Configura tu Wi-Fi de 2,4 GHz y actualiza la IP del controlador con la asignada por el router. También puedes buscar controladores en el Wi-Fi.
 
