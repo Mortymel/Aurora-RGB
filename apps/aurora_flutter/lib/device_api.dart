@@ -106,6 +106,10 @@ class DemoApi implements DeviceApi {
     'mqtt_port': 1883,
     'mqtt_user': '',
     'utc_offset': -240,
+    'reverse': false,
+    'restore': false,
+    'max_brightness': 255,
+    'transition_ms': 400,
     'wifi_password_set': false,
     'mqtt_password_set': false,
     'schedules': List.generate(

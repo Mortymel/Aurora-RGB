@@ -3,6 +3,141 @@ import 'package:flutter/material.dart';
 import 'controller.dart';
 import 'models.dart';
 
+Future<void> policyEditor(BuildContext context, AuroraController c) async {
+  final cfg = c.config!;
+  if (cfg['max_brightness'] == null && !c.selected!.demo) {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Actualiza LEDWeb'),
+        content: const Text(
+          'Estas funciones necesitan LEDWeb 1.3. Instálalo desde el web flasher.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Entendido'),
+          ),
+        ],
+      ),
+    );
+    return;
+  }
+  bool reverse = cfg['reverse'] == true, restore = cfg['restore'] == true;
+  double limit = (cfg['max_brightness'] as int? ?? 255).toDouble(),
+      transition = (cfg['transition_ms'] as int? ?? 400).toDouble();
+  await editSheet(
+    context,
+    title: 'Control y recuperación',
+    content: (context, set) => Column(
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Invertir dirección de la tira'),
+          value: reverse,
+          onChanged: (v) => set(() => reverse = v),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Recuperar estado tras un corte'),
+          subtitle: const Text('Desactivado: la tira arranca apagada.'),
+          value: restore,
+          onChanged: (v) => set(() => restore = v),
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Brillo máximo'),
+          trailing: Text('${(limit / 255 * 100).round()}%'),
+        ),
+        Slider(
+          value: limit,
+          min: 1,
+          max: 255,
+          divisions: 254,
+          onChanged: (v) => set(() => limit = v),
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Encendido y apagado suaves'),
+          trailing: Text('${(transition / 1000).toStringAsFixed(1)} s'),
+        ),
+        Slider(
+          value: transition,
+          min: 0,
+          max: 5000,
+          divisions: 50,
+          onChanged: (v) => set(() => transition = v),
+        ),
+        const Text(
+          'El límite se aplica en la ESP32, también a órdenes de Home Assistant. No sustituye una fuente y cableado adecuados.',
+          style: TextStyle(fontSize: 12),
+        ),
+      ],
+    ),
+    save: () => c.command('config', {
+      'reverse': reverse,
+      'restore': restore,
+      'max_brightness': limit.round(),
+      'transition_ms': transition.round(),
+    }),
+  );
+}
+
+Future<void> diagnosticsEditor(BuildContext context, AuroraController c) async {
+  final device = c.selected!;
+  try {
+    final state = await (device.demo ? c.demoApi : c.api).request(
+      device,
+      'state',
+    );
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Diagnóstico'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final row in [
+                'IP: ${state['ip'] ?? device.address}',
+                'Firmware: ${state['version'] ?? '1.2 / demo'}',
+                'Wi-Fi: ${state['wifi'] == true ? 'conectado' : 'punto de acceso'}',
+                'Señal: ${state['rssi'] ?? '—'} dBm',
+                'MQTT: ${state['mqtt'] == true ? 'conectado' : 'desconectado'}',
+                'Reloj: ${state['clock_valid'] == true ? 'sincronizado' : 'sin hora válida'}',
+                'Encendido: ${state['uptime'] ?? '—'} s',
+                'Memoria libre: ${state['free_heap'] ?? '—'} bytes',
+              ])
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: SelectableText(row),
+                ),
+              const Text(
+                'Si falla la conexión, comprueba alimentación, misma red Wi-Fi, IP y credenciales. Si cambió la red, conecta a LEDWeb-… para recuperar acceso.',
+                style: TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  } catch (error) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+}
+
 class PasswordSetting extends StatefulWidget {
   const PasswordSetting({
     super.key,
@@ -296,6 +431,18 @@ Future<void> deviceEditor(
 Future<void> colorEditor(BuildContext context, AuroraController c) async {
   final hex = TextEditingController(text: c.light.hex);
   var r = c.light.r, g = c.light.g, b = c.light.b;
+  bool live = true;
+  c.beginLive();
+  void preview() {
+    if (live) {
+      c.stageLive({
+        'state': 'ON',
+        'effect': 'Color fijo',
+        'color': {'r': r, 'g': g, 'b': b},
+      });
+    }
+  }
+
   try {
     await editSheet(
       context,
@@ -324,12 +471,26 @@ Future<void> colorEditor(BuildContext context, AuroraController c) async {
                 change(v.round());
                 hex.text =
                     '#${[r, g, b].map((n) => n.toRadixString(16).padLeft(2, '0')).join().toUpperCase()}';
+                preview();
               }),
             ),
           ],
         );
         return Column(
           children: [
+            SwitchListTile(
+              title: const Text('Vista en vivo en la tira'),
+              value: live,
+              onChanged: (value) => set(() {
+                live = value;
+                if (!live) {
+                  c.endLive();
+                } else {
+                  c.beginLive();
+                  preview();
+                }
+              }),
+            ),
             Container(
               height: 65,
               decoration: BoxDecoration(
@@ -346,6 +507,7 @@ Future<void> colorEditor(BuildContext context, AuroraController c) async {
                 b = (color.b * 255).round();
                 hex.text =
                     '#${[r, g, b].map((v) => v.toRadixString(16).padLeft(2, '0')).join().toUpperCase()}';
+                preview();
               }),
             ),
             const SizedBox(height: 16),
@@ -371,6 +533,7 @@ Future<void> colorEditor(BuildContext context, AuroraController c) async {
                             b = (color.b * 255).round();
                             hex.text =
                                 '#${[r, g, b].map((v) => v.toRadixString(16).padLeft(2, '0')).join().toUpperCase()}';
+                            preview();
                           }),
                           tooltip: 'Elegir tono',
                           icon: Icon(Icons.circle, color: color, size: 32),
@@ -411,13 +574,17 @@ Future<void> colorEditor(BuildContext context, AuroraController c) async {
           ],
         );
       },
-      save: () => c.command('light', {
-        'state': 'ON',
-        'effect': 'Color fijo',
-        'color': {'r': r, 'g': g, 'b': b},
-      }),
+      save: () async {
+        await c.finishLive();
+        await c.command('light', {
+          'state': 'ON',
+          'effect': 'Color fijo',
+          'color': {'r': r, 'g': g, 'b': b},
+        });
+      },
     );
   } finally {
+    c.endLive();
     hex.dispose();
   }
 }

@@ -6,7 +6,7 @@ ns = '{http://schemas.android.com/apk/res/android}'
 ET.register_namespace('android', ns[1:-1])
 manifest = Path('android/app/src/main/AndroidManifest.xml')
 root = ET.parse(manifest).getroot()
-for permission in ['android.permission.INTERNET', 'android.permission.ACCESS_NETWORK_STATE']:
+for permission in ['android.permission.INTERNET', 'android.permission.ACCESS_NETWORK_STATE', 'android.permission.CHANGE_WIFI_MULTICAST_STATE', 'android.permission.ACCESS_WIFI_STATE']:
     if not any(item.get(ns + 'name') == permission for item in root.findall('uses-permission')):
         ET.SubElement(root, 'uses-permission', {ns + 'name': permission})
 app = root.find('application')
@@ -31,3 +31,26 @@ resources = manifest.parent / 'res'
 assert app.get(ns + 'allowBackup') == 'false'
 assert app.get(ns + 'label') == 'Aurora'
 print('Aurora: Internet/LAN, backup disabled, native launcher icon configured.')
+activity=manifest.parent / 'kotlin/com/mortymel/aurora_led/MainActivity.kt'
+activity.parent.mkdir(parents=True,exist_ok=True)
+activity.write_text('''package com.mortymel.aurora_led
+import android.content.Context
+import android.net.wifi.WifiManager
+import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
+class MainActivity: FlutterActivity() {
+ private var multicast: WifiManager.MulticastLock? = null
+ override fun configureFlutterEngine(engine: FlutterEngine) {
+  super.configureFlutterEngine(engine)
+  MethodChannel(engine.dartExecutor.binaryMessenger,"aurora/network").setMethodCallHandler { call,result ->
+   when(call.method) {
+    "acquire" -> { if(multicast==null) { val manager=applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager; multicast=manager.createMulticastLock("aurora-discovery").apply { setReferenceCounted(false); acquire() } }; result.success(null) }
+    "release" -> { if(multicast?.isHeld==true)multicast?.release(); multicast=null; result.success(null) }
+    else -> result.notImplemented()
+   }
+  }
+ }
+ override fun onDestroy() { if(multicast?.isHeld==true)multicast?.release(); multicast=null; super.onDestroy() }
+}
+''',encoding='utf-8')

@@ -19,7 +19,9 @@ class ColorWheel extends StatelessWidget {
             1,
             hue,
             saturation,
-            HSVColor.fromColor(color).value == 0 ? 1 : HSVColor.fromColor(color).value,
+            HSVColor.fromColor(color).value == 0
+                ? 1
+                : HSVColor.fromColor(color).value,
           ).toColor(),
         );
       }

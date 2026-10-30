@@ -1,5 +1,17 @@
 # Aurora para Android — Flutter
 
+## Actualización 1.1.0 / LEDWeb 1.3
+
+- Búsqueda mDNS de controladores LEDWeb desde la bienvenida o Mis controladores; mantiene alta manual por IP si el router bloquea multicast. Android mantiene un bloqueo multicast solo durante la búsqueda.
+- Color en vivo: conserva el último gesto y limita los envíos; al desconectar o cambiar de controlador descarta órdenes pendientes. Se puede desactivar dentro del selector.
+- Deshacer el último cambio de luz, recuperando el estado confirmado anterior.
+- Rechazo de horarios opuestos para la misma hora/día en la app y en el firmware.
+- Control y recuperación: invertir dirección, limitar brillo físico, transición de encendido/apagado entre 0 y 5 segundos, recuperar opcionalmente el estado guardado tras un corte. Por defecto sigue arrancando apagada. El estado se persiste después de 1,5 segundos sin cambios; un corte inmediato puede conservar el estado guardado anterior.
+- Diagnóstico de IP, señal Wi-Fi, reloj, MQTT, versión, tiempo encendido y memoria disponible.
+- Web flasher con navegación y aspecto Aurora, modo claro/oscuro según el sistema y pasos USB/Wi-Fi.
+
+La búsqueda multicast y las funciones eléctricas requieren comprobación en el teléfono, router y placa reales. Esta entrega no incluye actualización OTA, segmentos, grupos, widgets ni firma de distribución para Google Play. El APK sigue siendo una compilación de prueba; se recomienda configurar una clave privada estable de distribución antes de publicar actualizaciones permanentes.
+
 ## Actualización 1.0.1
 
 Catálogo con tarjetas y muestras de colores/patrones generadas por el renderizador de cada efecto. La esfera mantiene su volumen y usa texto sin emoji. Los formularios ocultan contadores de caracteres y muestran las contraseñas guardadas como «Contraseña configurada», con una acción «Cambiar». Las redes abiertas y MQTT sin autenticación se eligen explícitamente; dejar un campo sin editar conserva la clave existente.

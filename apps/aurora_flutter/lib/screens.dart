@@ -1,3 +1,4 @@
+import 'discovery.dart';
 import 'effect_card.dart';
 import 'package:flutter/material.dart';
 import 'controller.dart';
@@ -59,6 +60,16 @@ class _AuroraHomeState extends State<AuroraHome> {
                       icon: const Icon(Icons.close),
                     ),
                   ],
+                ),
+                OutlinedButton.icon(
+                  onPressed: c.busy
+                      ? null
+                      : () async {
+                          Navigator.pop(context);
+                          await discoverControllers(this.context, c);
+                        },
+                  icon: const Icon(Icons.wifi_find),
+                  label: const Text('Buscar ESP32 en Wi-Fi'),
                 ),
                 ...c.devices.map(
                   (d) => ListTile(
@@ -320,6 +331,11 @@ class _AuroraHomeState extends State<AuroraHome> {
             icon: const Icon(Icons.add),
             label: const Text('Añadir ESP32'),
           ),
+          OutlinedButton.icon(
+            onPressed: () => discoverControllers(context, c),
+            icon: const Icon(Icons.wifi_find),
+            label: const Text('Buscar en mi Wi-Fi'),
+          ),
           TextButton(
             onPressed: () => c.select(Device.demonstration),
             child: const Text('Probar sin placa'),
@@ -431,6 +447,11 @@ class _AuroraHomeState extends State<AuroraHome> {
         onPressed: ready ? saveScene : null,
         icon: const Icon(Icons.star_outline),
         label: const Text('Guardar este ambiente'),
+      ),
+      TextButton.icon(
+        onPressed: ready && c.undoSnapshot != null ? () => act(c.undo) : null,
+        icon: const Icon(Icons.undo),
+        label: const Text('Deshacer último cambio'),
       ),
       const SizedBox(height: 28),
       Row(
@@ -732,6 +753,18 @@ class _AuroraHomeState extends State<AuroraHome> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         title('Ajustes'),
+        tile(
+          Icons.health_and_safety_outlined,
+          'Control y recuperación',
+          'Brillo máximo, transiciones y estado al reiniciar',
+          ready ? () => policyEditor(context, c) : null,
+        ),
+        tile(
+          Icons.info_outline,
+          'Diagnóstico',
+          'IP, Wi-Fi, MQTT y firmware',
+          ready ? () => diagnosticsEditor(context, c) : null,
+        ),
         Card(
           child: ListTile(
             contentPadding: const EdgeInsets.all(18),
@@ -790,11 +823,11 @@ class _AuroraHomeState extends State<AuroraHome> {
         tile(
           Icons.info_outline,
           'Acerca de Aurora',
-          'Android · Flutter · 1.0.2',
+          'Android · Flutter · 1.1.0',
           () => showAboutDialog(
             context: context,
             applicationName: 'Aurora',
-            applicationVersion: '1.0.2',
+            applicationVersion: '1.1.0',
             children: [
               const Text(
                 'App nativa para ESP32 con LEDWeb 1.2. La vista previa aproxima el efecto; la esfera representa el color seleccionado. Control local por Wi-Fi. Los horarios pertenecen a la ESP32.',

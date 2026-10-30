@@ -19,6 +19,68 @@ class AuroraController extends ChangeNotifier {
   String appearance = 'system';
   Set<String> favorites = {'Atardecer', 'Galaxia', 'Sakura', 'Mar profundo'};
   List<Json> scenes = [];
+  Json? undoSnapshot;
+  Timer? _liveTimer;
+  Json? _livePatch;
+  String? _liveDevice;
+  bool _liveSession = false;
+  void beginLive() {
+    _liveSession = true;
+    undoSnapshot = {...light.scene, 'state': light.on ? 'ON' : 'OFF'};
+  }
+
+  void stageLive(Json patch) {
+    _livePatch = patch;
+    _liveDevice = selected?.id;
+    if (_liveTimer?.isActive != true) {
+      _liveTimer = Timer(const Duration(milliseconds: 180), () => flushLive());
+    }
+  }
+
+  Future<void> flushLive() async {
+    _liveTimer?.cancel();
+    if (_livePatch == null) return;
+    if (_liveDevice != selected?.id || !connected) {
+      _livePatch = null;
+      return;
+    }
+    if (busy) {
+      _liveTimer = Timer(const Duration(milliseconds: 100), () => flushLive());
+      return;
+    }
+    final patch = _livePatch!;
+    _livePatch = null;
+    try {
+      await command('light', patch);
+    } catch (_) {
+      _livePatch = null;
+    }
+  }
+
+  void endLive() {
+    _liveTimer?.cancel();
+    _livePatch = null;
+    _liveSession = false;
+  }
+
+  Future<void> finishLive() async {
+    _liveTimer?.cancel();
+    _livePatch = null;
+    final until = DateTime.now().add(const Duration(seconds: 12));
+    while (busy) {
+      if (DateTime.now().isAfter(until)) {
+        throw const ApiException('Espera a que el controlador responda.');
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+  }
+
+  Future<void> undo() async {
+    final snapshot = undoSnapshot;
+    if (snapshot == null) return;
+    await command('light', snapshot);
+  }
+
   bool connected = false,
       busy = false,
       loading = true,
@@ -103,6 +165,8 @@ class AuroraController extends ChangeNotifier {
       throw const ApiException('Espera a que termine la acción actual.');
     }
     final generation = ++_generation;
+    endLive();
+    undoSnapshot = null;
     selected = device;
     connected = false;
     config = null;
@@ -232,6 +296,9 @@ class AuroraController extends ChangeNotifier {
     }
     busy = true;
     _revision++;
+    if (route == 'light' && !_liveSession) {
+      undoSnapshot = {...light.scene, 'state': light.on ? 'ON' : 'OFF'};
+    }
     error = null;
     _notify();
     try {
@@ -239,6 +306,20 @@ class AuroraController extends ChangeNotifier {
       if (route == 'config') {
         final latest = await _api(device).request(device, 'config');
         body = {...latest, 'wifi_password': '', 'mqtt_password': '', ...patch};
+        final rules = body['schedules'] as List;
+        for (var i = 0; i < rules.length; i++) {
+          for (var j = i + 1; j < rules.length; j++) {
+            if (rules[i]['enabled'] == true &&
+                rules[j]['enabled'] == true &&
+                rules[i]['time'] == rules[j]['time'] &&
+                ((rules[i]['days'] as int) & (rules[j]['days'] as int)) != 0 &&
+                rules[i]['on'] != rules[j]['on']) {
+              throw const FormatException(
+                'Hay horarios con acciones opuestas a la misma hora.',
+              );
+            }
+          }
+        }
       }
       final result = await _api(device).request(device, route, body);
       if (route == 'config') {
@@ -263,7 +344,7 @@ class AuroraController extends ChangeNotifier {
       light = Light.fromJson(await _api(device).request(device, 'state'));
       connected = true;
     } catch (e) {
-      connected = false;
+      if (e is! FormatException) connected = false;
       error = _message(e);
       rethrow;
     } finally {
@@ -308,6 +389,7 @@ class AuroraController extends ChangeNotifier {
   String _message(Object e) => e is FormatException ? e.message : e.toString();
   @override
   void dispose() {
+    endLive();
     _disposed = true;
     _generation++;
     _timer?.cancel();
