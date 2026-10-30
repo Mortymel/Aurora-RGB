@@ -29,7 +29,9 @@ struct Settings {
   uint16_t port=1883, count=DEFAULT_LED_COUNT;
   uint8_t pin=LED_DATA_PIN;
   int16_t utcOffset=-240;
-  bool grb=true;
+  bool grb=true, reverse=false, restore=false;
+  uint8_t maxBrightness=255;
+  uint16_t transition=400;
   Schedule schedules[4];
 } cfg;
 struct LightState {
@@ -49,6 +51,7 @@ uint32_t countdownStartedAt=0, timerDuration=0;
 bool timerOn=false;
 int64_t lastScheduleMinute=-1;
 double phase=0;
+float displayedBrightness=0;
 uint32_t frame[MAX_LED_COUNT];
 
 bool usablePin(int pin) {
@@ -83,6 +86,7 @@ void settingsJson(JsonDocument &doc, bool secrets) {
   doc["ssid"]=cfg.ssid; doc["mqtt_host"]=cfg.host; doc["mqtt_port"]=cfg.port;
   doc["mqtt_user"]=cfg.user; doc["count"]=cfg.count; doc["grb"]=cfg.grb; doc["gpio"]=cfg.pin;
   doc["utc_offset"]=cfg.utcOffset;
+  doc["reverse"]=cfg.reverse; doc["restore"]=cfg.restore; doc["max_brightness"]=cfg.maxBrightness; doc["transition_ms"]=cfg.transition;
   if(secrets) { doc["wifi_password"]=cfg.pass; doc["mqtt_password"]=cfg.mqttPass; }
   else { doc["wifi_password_set"]=cfg.pass.length()>0; doc["mqtt_password_set"]=cfg.mqttPass.length()>0; }
   JsonArray rows=doc["schedules"].to<JsonArray>();
@@ -105,6 +109,8 @@ void loadSettings() {
     cfg.count=constrain(d["count"] | DEFAULT_LED_COUNT,1,MAX_LED_COUNT);
     int pin=d["gpio"] | LED_DATA_PIN; cfg.pin=usablePin(pin)?pin:LED_DATA_PIN;
     cfg.grb=d["grb"] | true; cfg.utcOffset=constrain(d["utc_offset"] | -240,-720,840);
+    cfg.reverse=d["reverse"] | false; cfg.restore=d["restore"] | false;
+    cfg.maxBrightness=constrain(d["max_brightness"] | 255,1,255); cfg.transition=constrain(d["transition_ms"] | 400,0,5000);
     JsonArray a=d["schedules"].as<JsonArray>();
     for(size_t i=0;i<a.size() && i<4;i++) {
       cfg.schedules[i].enabled=a[i]["enabled"] | false;
@@ -118,13 +124,14 @@ void loadSettings() {
     light.brightness=constrain(s["brightness"] | 32,0,255);
     light.effect=constrain(s["effect"] | 0,0,EFFECT_COUNT-1);
     light.speed=constrain(s["speed"] | 45,1,100);
+    light.on=cfg.restore && (s["on"] | false);
     light.r=constrain(s["r"] | 255,0,255); light.g=constrain(s["g"] | 120,0,255);
     light.b=constrain(s["b"] | 35,0,255);
   }
   // Arranque apagado: evita encendidos inesperados tras un corte de energia.
 }
 void saveLight() {
-  JsonDocument d; d["brightness"]=light.brightness; d["effect"]=light.effect;
+  JsonDocument d; d["on"]=light.on; d["brightness"]=light.brightness; d["effect"]=light.effect;
   d["speed"]=light.speed; d["r"]=light.r; d["g"]=light.g; d["b"]=light.b;
   String text; serializeJson(d,text); prefs.putString("light",text); dirty=false;
 }
@@ -189,7 +196,7 @@ void discovery() {
   d["device"]["identifiers"].to<JsonArray>().add(deviceId);
   d["device"]["name"]="Controlador LED "+deviceId;
   d["device"]["manufacturer"]="DIY"; d["device"]["model"]="ESP32 LEDWeb";
-  d["device"]["sw_version"]="1.2.0";
+  d["device"]["sw_version"]="1.3.0";
   if(WiFi.status()==WL_CONNECTED) d["device"]["configuration_url"]="http://"+WiFi.localIP().toString();
   String text; serializeJson(d,text);
   mqtt.publish(("homeassistant/light/"+deviceId+"/config").c_str(),text.c_str(),true);
@@ -253,7 +260,7 @@ void setupWeb() {
   server.on("/api/state",HTTP_GET,[](){
     if(!authorized()) return;
     JsonDocument d; lightJson(d); d["id"]=deviceId; d["count"]=cfg.count;
-    d["version"]="1.2.0";
+    d["version"]="1.3.0"; d["rssi"]=WiFi.RSSI(); d["uptime"]=millis()/1000; d["free_heap"]=ESP.getFreeHeap(); d["hostname"]=hostName;
     d["ip"]=WiFi.status()==WL_CONNECTED?WiFi.localIP().toString():WiFi.softAPIP().toString();
     d["wifi"]=WiFi.status()==WL_CONNECTED; d["mqtt"]=mqtt.connected(); d["ap"]=apActive;
     time_t now=time(nullptr); d["clock_valid"]=now>1700000000;
@@ -287,6 +294,12 @@ void setupWeb() {
     for(int i=0;i<4;i++) {
       if(!parseTime(rows[i]["time"] | "",times[i]) || !rows[i]["days"].is<int>() || rows[i]["days"].as<int>()<1 || rows[i]["days"].as<int>()>127) { fail("Horario o dias invalidos"); return; }
     }
+    for(int i=0;i<4;i++) for(int j=i+1;j<4;j++) {
+      if((rows[i]["enabled"] | false) && (rows[j]["enabled"] | false) && times[i]==times[j] && (rows[i]["days"].as<int>() & rows[j]["days"].as<int>()) && (rows[i]["on"] | true)!=(rows[j]["on"] | true)) { fail("Horarios contradictorios: misma hora y dia con acciones opuestas"); return; }
+    }
+    if((!d["max_brightness"].isNull() && (!d["max_brightness"].is<int>() || d["max_brightness"].as<int>()<1 || d["max_brightness"].as<int>()>255)) || (!d["transition_ms"].isNull() && (!d["transition_ms"].is<int>() || d["transition_ms"].as<int>()<0 || d["transition_ms"].as<int>()>5000))) { fail("Limite de brillo o transicion invalidos"); return; }
+    cfg.reverse=d["reverse"] | cfg.reverse; cfg.restore=d["restore"] | cfg.restore;
+    cfg.maxBrightness=d["max_brightness"] | cfg.maxBrightness; cfg.transition=d["transition_ms"] | cfg.transition;
     bool reconnect=cfg.ssid!=d["ssid"].as<String>() || cfg.host!=d["mqtt_host"].as<String>() || cfg.port!=d["mqtt_port"].as<int>() || cfg.user!=d["mqtt_user"].as<String>() || d["wifi_password"].as<String>().length() || d["mqtt_password"].as<String>().length() || (d["clear_wifi_password"] | false) || (d["clear_mqtt_password"] | false) || cfg.utcOffset!=d["utc_offset"].as<int>();
     cfg.count=d["count"]; cfg.pin=d["gpio"]; cfg.grb=d["grb"] | true; cfg.utcOffset=d["utc_offset"];
     cfg.ssid=d["ssid"].as<String>(); cfg.host=d["mqtt_host"].as<String>();
@@ -357,7 +370,11 @@ void fade(uint8_t amount) {
 void render() {
   uint32_t now=millis(); if(uint32_t(now-lastFrame)<25) return;
   float dt=min(uint32_t(now-lastFrame),uint32_t(100))/1000.0f; lastFrame=now;
-  if(!light.on || !light.brightness) {
+  float target=light.on?min(light.brightness,cfg.maxBrightness):0;
+  if(cfg.transition==0) displayedBrightness=target;
+  else { float step=255.0f*dt*1000/cfg.transition; displayedBrightness += constrain(target-displayedBrightness,-step,step); }
+  uint8_t outputBrightness=min(int(roundf(displayedBrightness)),int(cfg.maxBrightness));
+  if(outputBrightness==0) {
     pixels.clear(); memset(frame,0,sizeof(frame)); pixels.show(); return;
   }
   for(int i=0;i<cfg.count;i++) pixels.setPixelColor(i,frame[i]);
@@ -471,9 +488,10 @@ void render() {
   // Conservar el fotograma sin escalar: evita perder precision en las estelas.
   for(int i=0;i<cfg.count;i++) {
     uint32_t c=pixels.getPixelColor(i); frame[i]=c;
-    pixels.setPixelColor(i,rgb(((c>>16)&255)*light.brightness/255,
-      ((c>>8)&255)*light.brightness/255,(c&255)*light.brightness/255));
+    pixels.setPixelColor(i,rgb(((c>>16)&255)*outputBrightness/255,
+      ((c>>8)&255)*outputBrightness/255,(c&255)*outputBrightness/255));
   }
+  if(cfg.reverse) for(int i=0;i<cfg.count/2;i++) { uint32_t c=pixels.getPixelColor(i); pixels.setPixelColor(i,pixels.getPixelColor(cfg.count-1-i)); pixels.setPixelColor(cfg.count-1-i,c); }
   pixels.show();
 }
 void handleClock() {
@@ -495,7 +513,7 @@ void setup() {
   hostName=deviceId; hostName.replace('_','-'); WiFi.setHostname(hostName.c_str());
   net.setConnectionTimeout(1000);
   mqtt.setBufferSize(4096); mqtt.setSocketTimeout(1); mqtt.setKeepAlive(30); mqtt.setCallback(mqttMessage);
-  configureNetwork(); setupWeb(); MDNS.begin(hostName.c_str()); MDNS.addService("http","tcp",80);
+  configureNetwork(); setupWeb(); MDNS.begin(hostName.c_str()); MDNS.addService("http","tcp",80); MDNS.addServiceTxt("http","tcp","app","aurora"); MDNS.addServiceTxt("http","tcp","version","1.3.0");
   Serial.printf("\nLEDWeb | GPIO %d | %u pixeles | usuario web %s\n",cfg.pin,cfg.count,WEB_USER);
 }
 void loop() {
