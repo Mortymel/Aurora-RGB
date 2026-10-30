@@ -2,12 +2,14 @@
 
 Aurora es una app Android nativa hecha con Flutter, acompañada por el firmware LEDWeb y un instalador USB desde el navegador. El control funciona en tu red local; no necesita un servicio en la nube.
 
-**Versiones de referencia:** Aurora Android **1.1.0**, LEDWeb **1.3.0**. Documentación revisada el **30 de octubre de 2026**.
+**Versiones de referencia:** Aurora Android **1.1.1**, LEDWeb **1.3.0**. Documentación revisada el **30 de octubre de 2026**.
+
+[**Descargar APK**](https://github.com/Mortymel/Aurora-RGB/releases/latest) · [**Instalar firmware**](https://mortymel.github.io/Aurora-RGB/) · [**Guía de uso**](docs/GUIA-DE-USO.md)
 
 ## Empezar
 
-1. [Instala LEDWeb con el web flasher](https://mortymel.github.io/ESP32-RGB-Studio-/) desde Chrome/Edge de escritorio y un cable USB de datos.
-2. [Descarga el APK desde Releases](https://github.com/Mortymel/ESP32-RGB-Studio-/releases/latest). En Assets elige el archivo `.apk`; el archivo `.sha256` permite comprobar su integridad. Las compilaciones correctas de Aurora por push a main o a su rama de trabajo se publican automáticamente. Los artefactos temporales de Actions se conservan como alternativa; no hay publicación en Google Play.
+1. [Instala LEDWeb con el web flasher](https://mortymel.github.io/Aurora-RGB/) desde Chrome/Edge de escritorio y un cable USB de datos.
+2. [Descarga el APK desde Releases](https://github.com/Mortymel/Aurora-RGB/releases/latest). En Assets elige el archivo `.apk`; el archivo `.sha256` permite comprobar su integridad. Las compilaciones correctas de Aurora por push a main o a su rama de trabajo se publican automáticamente. Los artefactos temporales de Actions se conservan como alternativa; no hay publicación en Google Play.
 3. Conecta el teléfono a `LEDWeb-…` (clave inicial `tiraesp32`). En Aurora añade `192.168.4.1`, usuario `admin` y esa contraseña, salvo que las cambiaste al compilar.
 4. Configura tu Wi-Fi de 2,4 GHz y actualiza la IP del controlador con la asignada por el router. También puedes buscar controladores en el Wi-Fi.
 
@@ -17,18 +19,18 @@ Aurora es una app Android nativa hecha con Flutter, acompañada por el firmware 
 
 - Encendido, apagado, brillo, velocidad, rueda táctil de color y colores rápidos. RGB/HEX queda en ajuste preciso.
 - Color en vivo con envíos limitados y deshacer el último cambio.
-- 32 efectos, tarjetas de vista previa, búsqueda, categorías, favoritos y hasta 50 ambientes.
+- 32 efectos, tarjetas de colores estáticos, búsqueda, categorías, favoritos y hasta 50 ambientes.
 - Cuatro horarios semanales, sincronización del reloj, desfase UTC fijo y cuenta atrás de hasta siete días.
 - Varios controladores, búsqueda mDNS, alta manual por IP, edición de credenciales y recuperación de conexión.
 - Configuración Wi-Fi y MQTT con descubrimiento de Home Assistant.
 - LEDWeb 1.3: límite de brillo, transición de encendido/apagado de 0 a 5 s, dirección invertida, recuperación opcional del estado persistido y diagnóstico.
-- Tema claro/oscuro/automático y demo nativa. La vista previa aparece solo en Mi luz y Efectos.
+- Tema claro/oscuro/automático y demo nativa. La simulación animada se conserva solo en Mi luz; Efectos usa muestras estáticas y carga progresiva.
 
 ## Código y organización
 
 | Componente | Ubicación y estado |
 |---|---|
-| App Android actual | [`apps/aurora_flutter` en la rama de Aurora](https://github.com/Mortymel/ESP32-RGB-Studio-/tree/codex/aurora-flutter-android/apps/aurora_flutter); su integración está en [PR #1](https://github.com/Mortymel/ESP32-RGB-Studio-/pull/1). No se presupone fusionada en main. |
+| App Android actual | [`apps/aurora_flutter` en la rama de Aurora](https://github.com/Mortymel/Aurora-RGB/tree/codex/aurora-flutter-android/apps/aurora_flutter); su integración está en [PR #1](https://github.com/Mortymel/Aurora-RGB/pull/1). No se presupone fusionada en main. |
 | Firmware actual | [`ledweb/firmware/LEDWeb`](ledweb/firmware/LEDWeb) en main |
 | Interfaz alojada en la placa | [`ledweb/app/aurora`](ledweb/app/aurora) |
 | Web flasher actual | [`web-flasher/aurora`](web-flasher/aurora) |
@@ -38,6 +40,15 @@ Aurora es una app Android nativa hecha con Flutter, acompañada por el firmware 
 Los directorios raíz `lib/`, `test/`, `firmware/`, el `pubspec.yaml` raíz y el instalador raíz anterior son código heredado. No son los puntos de entrada de Aurora. Su API y aprovisionamiento no deben mezclarse con los actuales.
 
 ## Documentación
+
+| Quiero… | Guía |
+|---|---|
+| Instalar y conectar mi primera tira | [Instalación](docs/INSTALACION.md) |
+| Aprender los controles y horarios | [Guía de uso](docs/GUIA-DE-USO.md) |
+| Resolver un problema | [Diagnóstico y soluciones](docs/SOLUCION-DE-PROBLEMAS.md) |
+| Compilar o modificar el proyecto | [Compilación](docs/COMPILACION.md) y [API](docs/API.md) |
+| Revisar pruebas y limitaciones | [Auditoría](docs/AUDITORIA.md) |
+
 
 [Índice completo](docs/README.md) · [Arquitectura](docs/ARQUITECTURA.md) · [API](docs/API.md) · [Hardware](docs/HARDWARE.md) · [Auditoría](docs/AUDITORIA.md) · [Seguridad](SECURITY.md) · [Contribuir](CONTRIBUTING.md) · [Cambios](CHANGELOG.md)
 

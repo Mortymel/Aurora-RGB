@@ -1,5 +1,9 @@
 # Cambios de Aurora
 
+## Aurora 1.1.1 — 2026-10-30
+
+Corrección de la lentitud de Efectos: se elimina la tira animada de esa pestaña, se sustituyen las simulaciones gráficas de tarjetas por muestras estáticas y se carga el catálogo progresivamente. Pruebas de carga parcial, desplazamiento hasta el último efecto y selección. No requiere actualizar LEDWeb 1.3.
+
 ## Aurora 1.1.0 / LEDWeb 1.3.0 — 2026-10-30
 
 Búsqueda mDNS, color en vivo con agrupación de gestos, deshacer, rechazo de horarios contradictorios, diagnóstico, límite de brillo, transición de encendido/apagado, dirección invertida y recuperación optativa del estado persistido. Flasher con aspecto Aurora. 16 pruebas Flutter y compilaciones Android/C6/ESP32 verificadas; hardware y MQTT real pendientes.
