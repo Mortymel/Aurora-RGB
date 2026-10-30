@@ -28,7 +28,9 @@ jobs:
           cache: true
       - name: Generate Android project
         run: |
+          cp pubspec.lock pubspec.lock.saved
           flutter create --platforms=android --org com.mortymel --project-name aurora_led --no-pub .
+          mv pubspec.lock.saved pubspec.lock
           python3 scripts/configure_android.py
       - run: flutter pub get --enforce-lockfile
       - run: flutter analyze

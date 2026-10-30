@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'dart:typed_data';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:aurora_led/app_store.dart';
 import 'package:aurora_led/controller.dart';
@@ -9,6 +11,22 @@ import 'package:aurora_led/main.dart';
 import 'package:aurora_led/light_visuals.dart';
 
 void main() {
+  setUpAll(() async {
+    final fonts = Directory(
+      '${File(Platform.resolvedExecutable).parent.parent.parent.path}/material_fonts',
+    );
+    for (final spec in [
+      ('Roboto', 'roboto-regular.ttf'),
+      ('MaterialIcons', 'materialicons-regular.otf'),
+    ]) {
+      final file = File('${fonts.path}/${spec.$2}');
+      if (file.existsSync()) {
+        final loader = FontLoader(spec.$1)
+          ..addFont(Future.value(ByteData.sublistView(file.readAsBytesSync())));
+        await loader.load();
+      }
+    }
+  });
   testWidgets('Aurora nativa: alta, demo, pantallas y visibilidad de la tira', (
     tester,
   ) async {
