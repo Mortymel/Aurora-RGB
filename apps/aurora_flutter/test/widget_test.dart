@@ -61,6 +61,10 @@ void main() {
     });
     await tester.tap(find.byType(ColorOrb));
     await tester.pump(const Duration(milliseconds: 400));
+    await tester.ensureVisible(find.text('Ajuste preciso · RGB / HEX'));
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tap(find.text('Ajuste preciso · RGB / HEX'));
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Código HEX'),
       '#44AAFF',

@@ -44,11 +44,11 @@ jobs:
           "$tools_dir/apksigner" verify --verbose "$apk"
           "$tools_dir/aapt" dump badging "$apk" > "$apk.metadata.txt"
           grep -q "com.mortymel.aurora_led" "$apk.metadata.txt"
-          grep -q "versionName='1.0.1'" "$apk.metadata.txt"
+          grep -q "versionName='1.0.2'" "$apk.metadata.txt"
           sha256sum "$apk" > "$apk.sha256"
       - uses: actions/upload-artifact@v4
         with:
-          name: Aurora-Flutter-Android-1.0.1
+          name: Aurora-Flutter-Android-1.0.2
           path: |
             apps/aurora_flutter/build/app/outputs/flutter-apk/app-release.apk
             apps/aurora_flutter/build/app/outputs/flutter-apk/app-release.apk.sha256

@@ -1,3 +1,4 @@
+import 'color_wheel.dart';
 import 'package:flutter/material.dart';
 import 'controller.dart';
 import 'models.dart';
@@ -66,49 +67,55 @@ Future<void> editSheet(
   final form = GlobalKey<FormState>();
   bool busy = false;
   String? error;
-  ModalRoute<void>? sheetRoute;
+  ModalRoute<void>? route;
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     builder: (sheetContext) => StatefulBuilder(
-      builder: (context, set) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
-          child: Form(
-            key: form,
+      builder: (context, set) {
+        route = ModalRoute.of<void>(context);
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: SizedBox(
+            height:
+                (MediaQuery.sizeOf(context).height * .88 -
+                        MediaQuery.viewInsetsOf(context).bottom)
+                    .clamp(180.0, MediaQuery.sizeOf(context).height),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: Theme.of(context).textTheme.headlineSmall,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 12, 12, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      tooltip: 'Cerrar',
-                      onPressed: busy ? null : () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
+                      IconButton(
+                        tooltip: 'Cerrar',
+                        onPressed: busy ? null : () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 18),
-                Builder(
-                  builder: (context) {
-                    sheetRoute = ModalRoute.of<void>(context);
-                    return content(context, set);
-                  },
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    child: Form(key: form, child: content(context, set)),
+                  ),
                 ),
                 if (error != null)
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Text(
                       error!,
                       style: TextStyle(
@@ -116,46 +123,56 @@ Future<void> editSheet(
                       ),
                     ),
                   ),
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: busy
-                      ? null
-                      : () async {
-                          if (!form.currentState!.validate()) return;
-                          set(() {
-                            busy = true;
-                            error = null;
-                          });
-                          try {
-                            await save();
-                            if (sheetContext.mounted) {
-                              Navigator.pop(sheetContext);
-                            }
-                          } catch (e) {
-                            if (sheetContext.mounted) {
-                              set(
-                                () => error = e is FormatException
-                                    ? e.message
-                                    : e.toString(),
-                              );
-                            }
-                          } finally {
-                            if (sheetContext.mounted) set(() => busy = false);
-                          }
-                        },
+                SafeArea(
+                  top: false,
                   child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Text(busy ? 'Guardando…' : saveLabel),
+                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: busy
+                            ? null
+                            : () async {
+                                if (!form.currentState!.validate()) return;
+                                set(() {
+                                  busy = true;
+                                  error = null;
+                                });
+                                try {
+                                  await save();
+                                  if (sheetContext.mounted) {
+                                    Navigator.pop(sheetContext);
+                                  }
+                                } catch (e) {
+                                  if (sheetContext.mounted) {
+                                    set(
+                                      () => error = e is FormatException
+                                          ? e.message
+                                          : e.toString(),
+                                    );
+                                  }
+                                } finally {
+                                  if (sheetContext.mounted) {
+                                    set(() => busy = false);
+                                  }
+                                }
+                              },
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(busy ? 'Guardando…' : saveLabel),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
+        );
+      },
     ),
   );
-  await sheetRoute?.completed;
+  await route?.completed;
 }
 
 Widget entry(
@@ -321,26 +338,72 @@ Future<void> colorEditor(BuildContext context, AuroraController c) async {
               ),
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: hex,
-              decoration: const InputDecoration(labelText: 'Código HEX'),
-              validator: (v) => RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(v ?? '')
-                  ? null
-                  : 'Ejemplo: #B987D3',
-              onChanged: (v) {
-                if (RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(v)) {
-                  set(() {
-                    r = int.parse(v.substring(1, 3), radix: 16);
-                    g = int.parse(v.substring(3, 5), radix: 16);
-                    b = int.parse(v.substring(5, 7), radix: 16);
-                  });
-                }
-              },
+            ColorWheel(
+              color: Color.fromARGB(255, r, g, b),
+              onChanged: (color) => set(() {
+                r = (color.r * 255).round();
+                g = (color.g * 255).round();
+                b = (color.b * 255).round();
+                hex.text =
+                    '#${[r, g, b].map((v) => v.toRadixString(16).padLeft(2, '0')).join().toUpperCase()}';
+              }),
             ),
             const SizedBox(height: 16),
-            channel('Rojo', r, (v) => r = v),
-            channel('Verde', g, (v) => g = v),
-            channel('Azul', b, (v) => b = v),
+            Wrap(
+              spacing: 10,
+              children:
+                  [
+                        Colors.white,
+                        const Color(0xffffbf80),
+                        Colors.red,
+                        Colors.orange,
+                        Colors.yellow,
+                        Colors.green,
+                        Colors.cyan,
+                        Colors.blue,
+                        Colors.purple,
+                      ]
+                      .map(
+                        (color) => IconButton(
+                          onPressed: () => set(() {
+                            r = (color.r * 255).round();
+                            g = (color.g * 255).round();
+                            b = (color.b * 255).round();
+                            hex.text =
+                                '#${[r, g, b].map((v) => v.toRadixString(16).padLeft(2, '0')).join().toUpperCase()}';
+                          }),
+                          tooltip: 'Elegir tono',
+                          icon: Icon(Icons.circle, color: color, size: 32),
+                        ),
+                      )
+                      .toList(),
+            ),
+            ExpansionTile(
+              title: const Text('Ajuste preciso · RGB / HEX'),
+              children: [
+                TextFormField(
+                  controller: hex,
+                  decoration: const InputDecoration(labelText: 'Código HEX'),
+                  validator: (v) =>
+                      RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(v ?? '')
+                      ? null
+                      : 'Ejemplo: #B987D3',
+                  onChanged: (v) {
+                    if (RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(v)) {
+                      set(() {
+                        r = int.parse(v.substring(1, 3), radix: 16);
+                        g = int.parse(v.substring(3, 5), radix: 16);
+                        b = int.parse(v.substring(5, 7), radix: 16);
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                channel('Rojo', r, (v) => r = v),
+                channel('Verde', g, (v) => g = v),
+                channel('Azul', b, (v) => b = v),
+              ],
+            ),
             const Text(
               'Al aplicar un color se activa Color fijo.',
               style: TextStyle(fontSize: 12),

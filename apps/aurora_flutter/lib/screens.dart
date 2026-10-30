@@ -790,11 +790,11 @@ class _AuroraHomeState extends State<AuroraHome> {
         tile(
           Icons.info_outline,
           'Acerca de Aurora',
-          'Android · Flutter · 1.0.1',
+          'Android · Flutter · 1.0.2',
           () => showAboutDialog(
             context: context,
             applicationName: 'Aurora',
-            applicationVersion: '1.0.1',
+            applicationVersion: '1.0.2',
             children: [
               const Text(
                 'App nativa para ESP32 con LEDWeb 1.2. La vista previa aproxima el efecto; la esfera representa el color seleccionado. Control local por Wi-Fi. Los horarios pertenecen a la ESP32.',
