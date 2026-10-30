@@ -1,18 +1,20 @@
-# Solución de problemas — 0.8.0
+# Solución de problemas de Aurora
 
-| Síntoma | Comprobación |
+| Problema | Comprobación |
 |---|---|
-| No aparece la ESP32 por Bluetooth | Firmware 0.8.0 instalado, placa encendida, teléfono cerca; BOOT 3 segundos después del arranque para reabrir los 10 minutos |
-| No aparece el permiso | Android 12+: Dispositivos cercanos; Android 11 o anterior: ubicación concedida y activada |
-| Emparejamiento falla tras reflashear | Elimina el vínculo Bluetooth anterior en Android y vuelve a buscar |
-| WiFi no conecta | SSID y contraseña exactos, red de 2,4 GHz; no se admiten EAP ni PSK hexadecimal de 64 caracteres |
-| Configuración cancelada, pero placa conectada | Puede haber completado el comando ya enviado; utiliza Ya está conectada al WiFi |
-| La app añadió la tira pero no responde | Teléfono en la misma red, sin aislamiento de clientes ni VPN que bloquee la LAN; comprueba IP actual |
-| Cambió el router o la contraseña | BOOT 3 segundos después del arranque y repite el alta; una contraseña fallida no borra la anterior |
-| Cantidad incorrecta de LED | Cuenta píxeles direccionables/grupos, no necesariamente encapsulados; rango 1–1024 |
-| Android rechaza instalar una actualización | La firma de desarrollo puede diferir de la anterior. Desinstalar borra los datos locales de la app; no los de la ESP32 |
-| Temporizador no actúa tras cerrar la app | Es un temporizador del teléfono; requiere mantener el proceso activo |
+| No aparece puerto USB | Cable de datos, otro puerto, monitor serie cerrado y controlador del fabricante. BOOT/RESET si la placa lo necesita. |
+| Navegador no instala | Chrome/Edge de escritorio con Web Serial y HTTPS; Android no es el entorno de instalación USB documentado. |
+| Chip no compatible | Solo se publican binarios C6 y ESP32 clásico; no elijas otro a mano. |
+| No aparece LEDWeb-… | Reinicia, espera recuperación y consulta monitor serie. Si conecta a un Wi-Fi guardado, revisa el router. |
+| Usuario/contraseña incorrectos | Claves de config.h; inicial admin/tiraesp32, no las de Wi-Fi ni Home Assistant. |
+| No encuentra por búsqueda | Misma LAN, sin aislamiento de invitados/VPN; algunos routers bloquean multicast. Usa la IP. |
+| Deja de responder al guardar Wi-Fi | Cambió de red/IP. Reconecta el teléfono, consulta el router y edita la IP; recuperación por AP. |
+| Colores intercambiados | Prueba rojo/verde/azul y cambia RGB/GRB. Algunos efectos tienen paletas propias. |
+| Brillo menor que el solicitado | Revisa max_brightness, transición en curso y alimentación; el brillo reportado es el valor solicitado. |
+| Tira inestable o sin datos | DIN/flechas, GND común, GPIO real libre, cable corto y señal compatible. No elevar un GPIO a 5 V. |
+| Horario no ejecutado | Reloj válido, UTC fijo correcto, días seleccionados y regla habilitada. No hay ajuste automático de verano. |
+| MQTT desconectado | IP/puerto del broker, credenciales y firewall. No usar 8123 ni asumir que core-mosquitto resuelve en la ESP32. |
+| Android rechaza actualizar APK | Posible firma distinta entre compilaciones de prueba. Reinstalar borra datos locales; anota direcciones y conserva claves antes de hacerlo. |
+| Firma/archivo de firmware dudoso | Usa el instalador actual y compara SHA-256 con build-info.json; las imágenes fusionadas se escriben desde 0x0. |
 
-La ESP32 configurada no abre automáticamente Bluetooth por una caída del router; utiliza BOOT si necesitas cambiar la red. Ya no existe el antiguo punto de acceso abierto ni la ruta de configuración `/setup`.
-
-Las ejecuciones correctas deben tener pruebas, compilación y verificación de artefactos aprobadas. Un archivo de un run anterior no confirma que el firmware/app nuevos se hayan generado. Consulta el SHA de cada ejecución.
+Usa Ajustes → Diagnóstico para consultar versión, IP, señal, MQTT y reloj. Al reportar un fallo incluye versiones y modelo exacto, sin claves ni logs con secretos.

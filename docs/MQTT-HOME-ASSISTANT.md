@@ -1,68 +1,25 @@
-# Home Assistant y MQTT — contrato de integración
+# Home Assistant mediante MQTT
 
-**Estado:** diseño para la próxima versión del firmware. La aplicación muestra esta sección como pendiente; todavía no envía credenciales ni configura un broker.
+La ESP32 se conecta al broker MQTT. Aurora guarda los parámetros en la placa; la app no necesita permanecer abierta ni conectarse directamente al broker.
 
-## Requisitos
+1. En Home Assistant OS instala e inicia Mosquitto broker desde Ajustes → Apps/Complementos.
+2. Crea un usuario dedicado y contraseña en Ajustes → Personas → Usuarios; activa modo avanzado si hace falta.
+3. Obtén la IP LAN del equipo que aloja el broker desde el router o la configuración de red.
+4. Configura la integración MQTT y habilita descubrimiento en Home Assistant.
+5. En Aurora → Ajustes → Home Assistant / MQTT introduce IP/host del broker, puerto (habitualmente 1883), usuario y contraseña. Si el broker admite acceso anónimo, elige explícitamente sin autenticación.
 
-- Broker MQTT en la red local (por ejemplo, Mosquitto integrado en Home Assistant).
-- Firmware ESP32 con cliente MQTT, reconexión, autenticación y publicación de estado.
-- Identificador único por controlador. Los ejemplos usan `mostys-led/esp32-01`.
+No confundas el puerto 1883 con el de la interfaz web 8123. No uses la contraseña Wi-Fi como clave MQTT salvo que realmente sea la configurada en el broker. Un nombre interno como core-mosquitto puede no resolver desde la ESP32.
 
-## Temas propuestos
+Las claves guardadas no se devuelven por HTTP. Contraseña configurada → Cambiar permite sustituirla; sin editar se conserva. Servidor vacío desactiva MQTT. La demo solo simula estos datos.
 
-| Tema | Dirección | Contenido |
-| --- | --- | --- |
-| `mostys-led/esp32-01/state` | ESP32 → broker | JSON de estado, retain=true |
-| `mostys-led/esp32-01/set` | Broker → ESP32 | JSON de comandos |
-| `mostys-led/esp32-01/availability` | ESP32 → broker | `online` / `offline` (LWT) |
+## Protocolo
 
-Ejemplo de estado:
+Con `deviceId=ledweb_<sufijo MAC>`, la base es `ledweb/<deviceId>`: comandos en `/set`, estado en `/state` y disponibilidad en `/availability`. Discovery se publica retenido en `homeassistant/light/<deviceId>/config`, nombre Tira LED. El firmware vuelve a anunciarse al recibir `online` en `homeassistant/status`.
 
-```json
-{"state":"ON","brightness":180,"color":{"r":255,"g":80,"b":30},"effect":"Solid"}
-```
-
-Ejemplo de comando:
+Ejemplo de payload de comando:
 
 ```json
-{"state":"ON","brightness":150,"color":{"r":20,"g":150,"b":255}}
+{"state":"ON","brightness":100,"effect":"Color fijo","color":{"r":255,"g":120,"b":35}}
 ```
 
-## Home Assistant MQTT Discovery
-
-Publicar un mensaje retained en `homeassistant/light/mostys_led_esp32_01/config`:
-
-```json
-{
-  "name": "mosty's led",
-  "unique_id": "mostys_led_esp32_01",
-  "schema": "json",
-  "command_topic": "mostys-led/esp32-01/set",
-  "state_topic": "mostys-led/esp32-01/state",
-  "availability_topic": "mostys-led/esp32-01/availability",
-  "brightness": true,
-  "rgb": true,
-  "effect": true,
-  "effect_list": ["Solid", "Rainbow", "Fire", "Sparkle", "Breathe", "Waves"],
-  "device": {
-    "identifiers": ["mostys_led_esp32_01"],
-    "name": "mosty's led",
-    "manufacturer": "DIY",
-    "model": "ESP32-WROOM-32"
-  }
-}
-```
-
-El firmware debe implementar de verdad los efectos anunciados. En Home Assistant, las claves de MQTT Discovery dependen de la versión; validar contra la documentación oficial al integrar: https://www.home-assistant.io/integrations/light.mqtt/ y https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery
-
-## Seguridad
-
-Usar usuario MQTT específico para el dispositivo con permisos mínimos. Evitar brokers expuestos a Internet. En redes no confiables, exigir TLS si el firmware y la memoria lo permiten. No guardar contraseñas en repositorios ni en logs.
-
-## Criterios de aceptación
-
-1. La ESP32 aparece automáticamente como entidad de luz en Home Assistant.
-2. El estado se sincroniza en ambas direcciones.
-3. El dispositivo pasa a `unavailable` al desconectarse (LWT).
-4. Tras reiniciar, se recupera el estado y se reanuncia el discovery.
-5. Se prueban los cambios de brillo, RGB, encendido y efectos.
+La conexión local del firmware no usa TLS. No exponer el broker/controlador a Internet. Falta validar descubrimiento y disponibilidad con el broker real del usuario.

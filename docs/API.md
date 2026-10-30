@@ -1,60 +1,43 @@
-> Firmware 0.8.0: alta WiFi/nombre/píxeles por [Bluetooth GATT v1](BLUETOOTH.md). HTTP local se usa después del alta; ya no existe `/setup`. `/api/control` rechaza valores fuera de rango o con tipos incorrectos antes de aplicar cambios. Rango: píxeles 1–1024, brillo 0–255, velocidad 1–255, efecto 0–11, color RGB 0–0xFFFFFF. El endpoint no tiene autenticación/TLS y requiere red privada.
+# API de LEDWeb 1.3
 
-# Contrato HTTP de referencia (v0.1)
+HTTP local, puerto 80 y autenticación Basic con WEB_USER/WEB_PASSWORD de config.h. Las escrituras requieren Content-Type application/json y un objeto JSON de hasta 8192 bytes. Los errores devuelven JSON con `error`; una autenticación fallida puede devolver 401 sin JSON. No hay CORS abierto ni API de nube.
 
-> Implementado en `firmware/src/main.cpp`. La cantidad se configura por controlador desde Android y se conserva en NVS.
+| Ruta | Método | Uso |
+|---|---|---|
+| / | GET | Interfaz Aurora alojada en la ESP32 |
+| /aurora | GET | Misma interfaz |
+| /classic | GET | Interfaz web clásica de LEDWeb |
+| /api/state | GET | Estado, efectos admitidos y diagnóstico |
+| /api/light | POST | Cambiar luz |
+| /api/config | GET | Configuración sin claves; GPIO admitidos y chip |
+| /api/config | POST | Guardar configuración completa |
+| /api/timer | POST | Cuenta atrás |
+| /api/clock | POST | Sincronizar hora UTC |
 
-## Obtener estado
-
-```http
-GET /api/state
-```
-
-Ejemplo de respuesta esperado por `LedState.fromJson`:
+## Luz
 
 ```json
-{
-  "power": true,
-  "brightness": 128,
-  "effect": 0,
-  "speed": 100,
-  "color": 10494192,
-  "pixels": 60,
-  "audioLevel": 0,
-  "wifi": "connected"
-}
+{"state":"ON","brightness":100,"speed":45,"effect":"Atardecer","color":{"r":255,"g":120,"b":35}}
 ```
 
-El cliente utiliza valores predeterminados si faltan ciertos campos, por lo que una respuesta incompleta puede ocultar una incompatibilidad de firmware.
+Estado ON/OFF; brillo 0–255; velocidad 1–100; RGB 0–255. Usa nombres exactos de la lista `effects` de /api/state (32 efectos); la API también admite índice válido. Campos omitidos conservan el valor. La respuesta de POST luz contiene el estado de luz, no todos los campos de GET state.
 
-## Enviar comandos
+GET state incluye `id,count,ip,wifi,mqtt,ap,clock_valid,clock,timer_remaining,effects,version,rssi,uptime,free_heap,hostname`, además de luz. `clock` solo existe con hora válida, `uptime` y cuenta atrás están en segundos; RSSI en dBm y memoria libre en bytes. El brillo reportado es el solicitado; la salida física está limitada por max_brightness y puede estar en transición.
 
-```http
-POST /api/control
-Content-Type: application/x-www-form-urlencoded
+## Configuración
 
-power=true&brightness=128&effect=0&speed=100
-```
+Lee primero GET config y envía el objeto completo modificado: `count` 1–1600; `gpio` de available_pins; `grb` booleano; `ssid,wifi_password,mqtt_host,mqtt_port,mqtt_user,mqtt_password,utc_offset,schedules`. Puerto 1–65535, UTC en minutos entre −720 y +840. SSID hasta 32, clave Wi-Fi hasta 63, host/usuario/clave MQTT hasta 128.
 
-El cliente también puede enviar `color=0xA020F0`. Se espera un JSON con la misma estructura del estado como respuesta.
+LEDWeb 1.3 añade `reverse` y `restore` booleanos; `max_brightness` 1–255; `transition_ms` 0–5000. Valores iniciales false, false, 255 y 400.
 
-| Campo | Tipo esperado | Uso |
-| --- | --- | --- |
-| `power` | `true` / `false` | Encender o apagar |
-| `brightness` | Entero 0–255 | Brillo |
-| `effect` | Entero | Identificador de efecto; mapa pendiente de validar |
-| `speed` | Entero 1–255 | Velocidad |
-| `color` | Texto hexadecimal `0xRRGGBB` | Color |
-| `pixels` | Entero 1–1024 | Cantidad de píxeles/grupos direccionables de esta tira |
+Cuatro schedules exactos: `{"enabled":true,"on":true,"time":"20:00","days":127}`. Days: máscara de 1–127, lunes bit 0 y domingo bit 6. Se rechazan reglas activas con acciones opuestas, misma hora y días solapados. No hay escena independiente por horario; el encendido usa el ambiente seleccionado.
 
-Ejemplo: `POST /api/control` con `pixels=60` devuelve el estado con `pixels: 60`. También se admite JSON con `{"pixels":60}`. Valores vacíos, fraccionarios, no numéricos o fuera de rango devuelven HTTP 400 sin modificar el estado. `GET /api/info` anuncia `pixels`, `max_pixels`, protocolo y orden de color.
+GET nunca devuelve claves: indica wifi_password_set/mqtt_password_set. Clave vacía conserva la existente; para retirarla se usan clear_wifi_password/clear_mqtt_password. Estas opciones son de protocolo; la UI las presenta como red abierta o sin autenticación. Si se envían simultáneamente borrado y clave nueva no vacía, prevalece la nueva.
 
-Android guarda la cantidad por controlador y la aplica al conectar cuando difiere del estado. Si la ESP32 está desconectada, la configuración queda guardada en el teléfono y se intenta aplicar en la próxima conexión. Si un firmware antiguo ignora `pixels`, la app muestra un error en vez de darlo por configurado. Los controladores guardados por versiones anteriores no se sobrescriben con una cantidad predeterminada.
+Guardar red/MQTT/zona puede devolver `{"ok":true,"reconnecting":true}`. No asumir que una segunda consulta inmediata responderá: la IP/red pueden cambiar. Se abre el AP de recuperación.
 
-## Compatibilidad y seguridad
+## Tiempo
 
-- No hay autenticación en el cliente HTTP actual.
-- Usar exclusivamente en una red local confiable; no abrir puertos del router hacia la ESP32.
-- Se recomienda versionar el contrato (por ejemplo, `/api/version`) y añadir errores JSON consistentes.
-- Los nombres de efectos de la app son ilustrativos hasta verificar su correspondencia con el firmware.
+Timer: `{"minutes":30,"on":false}`; de 0 a 10080, cero cancela. Se pierde al reiniciar. Reloj: `{"epoch":1793358000}`, segundos UTC entre 1700000000 y 4102444800. Los horarios necesitan reloj válido y usan desfase fijo, sin ajuste estacional automático.
 
+MQTT utiliza el mismo formato de luz: [guía](MQTT-HOME-ASSISTANT.md). No hay endpoints OTA, grupos ni segmentos en esta versión.

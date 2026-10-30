@@ -1,15 +1,11 @@
-## Resumen
+## Cambio
 
-## Cambios realizados
+Problema concreto y comportamiento final en Aurora/LEDWeb.
 
-## Cómo se ha probado
-- [ ] flutter analyze --no-fatal-infos
-- [ ] GitHub Actions en verde
-- [ ] Prueba en Android físico (si aplica)
-- [ ] Prueba con ESP32 real (si aplica)
+## Validación
 
-## Riesgos / compatibilidad
+Pruebas ejecutadas, versión Flutter/core, destinos compilados y si hubo hardware real. Indica lo pendiente.
 
-## Documentación actualizada
-- [ ] Sí
-- [ ] No aplica
+## Compatibilidad
+
+Cambios de API, preferencias, requisitos de firmware y documentación. Confirma que no se incluyen claves privadas ni secretos.

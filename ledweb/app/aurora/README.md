@@ -1,23 +1,7 @@
-# Aurora
+# Interfaz web de LEDWeb
 
-App web independiente para LEDWeb. Código fuente único de la versión real y de la demo; no depende de la app Android anterior.
+Esta carpeta contiene HTML, CSS, JavaScript, transporte del mismo origen y vista previa para la interfaz alojada en la ESP32. Es independiente de la app Android Flutter.
 
-- `index.html`: pantallas y formularios.
-- `app.css`: diseño adaptable Aurora.
-- `app.js`: controles, estado y preferencias.
-- `transport.js`: API del mismo origen, timeout y errores.
-- `preview.js`: aproximación animada de los efectos.
+Desde la raíz del repositorio ejecuta `node ledweb/scripts/build-aurora.cjs` para generar ledweb/firmware/LEDWeb/aurora_ui.h. El header se incluye al compilar LEDWeb 1.3; no se carga un sistema de archivos aparte. Abre la IP de la ESP32 con las credenciales de config.h; /classic conserva la interfaz alternativa de LEDWeb.
 
-## Probar sin ESP32
-
-Desde la raíz: `node demo/server.cjs`. Abrir `http://127.0.0.1:8765/aurora`. Los datos son simulados; no introducir claves reales. La esfera muestra el color seleccionado y la tira el efecto aproximado. Horarios y Ajustes ocultan la vista previa.
-
-## Usar en ESP32
-
-Ejecutar `node scripts/build-aurora.cjs` tras editar la app. Genera `firmware/LEDWeb/aurora_ui.h` con HTML, CSS y JavaScript comprimidos. `scripts/compile.ps1` lo hace automáticamente. El header se incluye en el firmware y no necesita sistema de archivos ni Internet.
-
-Abrir la IP de la ESP32 en el teléfono y autenticar con los datos de `config.h`. La interfaz clásica sigue disponible en `/classic`. El navegador administra HTTP Basic; Aurora no almacena la contraseña del administrador.
-
-La versión real se selecciona al empaquetar con `data-demo="false"`; no puede activarse por un parámetro de URL. Añadir otra ESP32 abre su dirección, sin realizar peticiones cruzadas entre orígenes. Es necesario cargar este firmware en cada placa.
-
-La auditoría, límites y comprobaciones físicas están en `docs/AUDITORIA-AURORA.md`.
+Para Android usa el [proyecto Flutter](https://github.com/Mortymel/ESP32-RGB-Studio-/tree/codex/aurora-flutter-android/apps/aurora_flutter). [Documentación de Aurora](../../../docs/README.md).

@@ -1,62 +1,11 @@
-> Documento de planificación histórica. El estado vigente de la versión 0.8.0 está en [README](../README.md), [Bluetooth](BLUETOOTH.md) y [auditoría](AUDITORIA.md). El alta BLE ya está implementada; autenticación por prueba de posesión y validación física siguen pendientes.
+# Diseño y uso de Aurora
 
-# Investigación de interfaces LED y criterios de producto
+Aurora tiene cuatro secciones: Mi luz, Efectos, Horarios y Ajustes. La vista previa de la tira solo aparece en Mi luz y Efectos para dejar espacio a la configuración y programación.
 
-Fecha de referencia: octubre de 2026. Investigación de funciones públicas, **no** copia de diseños, marcas, recursos gráficos ni código propietario.
+La esfera mantiene el volumen y representa el RGB elegido; no intenta imitar físicamente la difusión de la tira. La rueda táctil permite elegir tono y saturación, con colores rápidos y RGB/HEX en ajuste preciso. Aplicar permanece visible encima del borde/teclado. La vista en vivo puede desactivarse. Deshacer recupera el estado confirmado anterior; no es un historial de acciones de Home Assistant.
 
-## Referentes
+Las tarjetas muestrean colores y patrones del renderizador de cada efecto. Son aproximaciones visuales, no mediciones del hardware. Algunos efectos usan su propia paleta y otros el RGB seleccionado. El sistema respeta reducción de animaciones en la vista previa, pero eso no deshabilita por sí solo destellos en la tira real.
 
-### WLED
-Documentación oficial: https://kno.wled.ge/basics/web-ui/
+Las claves existentes se presentan como Contraseña configurada → Cambiar. La clave real no se recupera de la ESP32. Red abierta y MQTT sin autenticación son elecciones explícitas; no se muestran casillas técnicas de borrado como flujo normal.
 
-Patrones útiles: control de encendido y brillo accesible, colores, efectos con parámetros, segmentos independientes, presets, playlists, temporizador, estado y configuración de dispositivo. **Decisión:** adoptar organización por tareas y controles de velocidad, escenas y estado; los segmentos requieren API de firmware.
-
-### Govee Home
-Sitio oficial: https://eu.govee.com/es-es/pages/govee-home-app
-
-Patrones útiles: catálogo de ambientes, modo DIY, música, gestión de dispositivos y vista orientada a experiencias. **Decisión:** galería visual de escenas, escenas personales y ruta clara hacia música; no afirmar soporte de audio sin firmware.
-
-### Philips Hue
-Sitio oficial: https://www.philips-hue.com/en-us/philips-hue-app
-
-Patrones útiles: navegación por habitaciones y zonas, escenas por ambiente, rutinas, agrupación de luces, acceso rápido al control principal. **Decisión:** navegación inferior con inicio/escenas/efectos/ajustes; futura agrupación multi-dispositivo.
-
-## Priorización funcional
-
-| Prioridad | Capacidad | Estado |
-| --- | --- | --- |
-| P0 | Conectar y mostrar estado real | Cliente implementado; firmware por validar |
-| P0 | Encender, brillo, color, efecto, velocidad | Interfaz y comandos disponibles; por probar |
-| P0 | APK reproducible | CI configurado; pendiente de éxito |
-| P1 | Escenas prediseñadas | Implementado en cliente |
-| P1 | Escenas personalizadas locales | Implementado en cliente |
-| P1 | Renombrar y configurar IP | Implementado en cliente |
-| P1 | Temporizador de apagado | Local y volátil; requiere app abierta |
-| P1 | Selector HSV / hexadecimal | Pendiente |
-| P1 | Animación realista de tira | Pendiente; preview actual es ilustrativo |
-| P2 | Horarios y automatizaciones persistentes | Pendiente de firmware |
-| P2 | Segmentos RGBIC | Pendiente de firmware y API |
-| P2 | Música | Pendiente de captura y procesamiento |
-| P2 | WiFi BLE seguro | Pendiente de firmware y protocolo |
-| P2 | Multi-dispositivo y sincronización | Pendiente |
-| P3 | MQTT/Home Assistant y OTA | Pendiente |
-
-## Principios de diseño
-
-1. **No simular conectividad:** sin dispositivo, los controles de hardware no deben aparentar éxito.
-2. **Capacidades reales:** ocultar o etiquetar como futuras las funciones que el firmware no admite.
-3. **Rápido y claro:** acceso a encendido, brillo, colores y escenas desde inicio.
-4. **Privacidad por defecto:** control LAN, escenas locales y sin cuenta obligatoria.
-5. **Seguridad:** no abrir HTTP sin autenticación a Internet ni enviar claves WiFi por BLE sin protección.
-6. **Accesibilidad:** contraste, etiquetas, objetivos táctiles grandes y compatibilidad con texto escalado.
-
-## Próximas iteraciones recomendadas
-
-1. Lograr build verde y prueba física de Android.
-2. Congelar contrato de firmware y probar control real.
-3. Selector HSV, editor hexadecimal, favoritos y preview vinculada al estado.
-4. API de capacidades, segmentos y transiciones.
-5. Automatizaciones persistentes, BLE seguro y música.
-
-Los patrones funcionales se inspiran en productos existentes; los componentes visuales y el código de ESP32 RGB Studio son originales.
-
+El web flasher comparte colores lavanda, esfera, tarjetas redondeadas, navegación por pasos y tema claro/oscuro según el sistema. Instalar firmware sigue requiriendo navegador de escritorio compatible y un puerto USB; la app Android controla por Wi-Fi.

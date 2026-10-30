@@ -1,41 +1,18 @@
-# Hardware y cableado
+# Hardware y cableado de Aurora
 
-## Componentes previstos
-
-| Elemento | Referencia |
-| --- | --- |
-| Microcontrolador | ESP32-WROOM-32 clásico |
-| Tira | RGB direccionable compatible con WS2812B / GRB; sin marca obligatoria |
-| Cantidad | 1–1024 píxeles por controlador, indicada al añadir o editar la ESP32 en Android |
-| Consumo | Depende de la tira, cantidad y brillo; medir y consultar al fabricante |
-| Fuente | Externa, con tensión y corriente adecuadas a la tira; binario actual preparado para 5 V |
-| Adaptador lógico recomendado | 74AHCT125, de 3,3 V a 5 V |
-| Micrófono opcional | INMP441 I²S, aún no integrado |
-
-**Importante:** verificar protocolo, orden de color, tensión y corriente real. Cuenta píxeles/grupos direccionables, que pueden agrupar varios LED físicos. La cantidad se guarda en Android y en la ESP32. Otros protocolos, RGBW y tiras analógicas requieren un controlador distinto; no basta cambiar la cantidad.
-
-## Conexión conceptual
+La tira de referencia del proyecto es RGB direccionable de 5 V, IC XGB1338 similar a WS2812B, 160 píxeles/m y consumo publicado máximo de 8 W/m. La compatibilidad física del IC y la señal debe comprobarse en la tira real.
 
 ```text
-Fuente 5 V (+) ─────────────► +5V tira LED
-Fuente GND ─────┬───────────► GND tira LED
-                └───────────► GND ESP32
-ESP32 GPIO ──► 74AHCT125 ──► DIN tira LED
-                ↑ 5 V
+ESP32 GPIO elegido ---------- DIN de la tira
+ESP32 GND --------+---------- GND de la tira
+Fuente GND -------+
+Fuente +5 V ---------------- VCC de la tira
 ```
 
-El binario publicado utiliza GPIO 5 y orden GRB. El cableado debe coincidir; cambia y recompila el controlador si tu tira requiere otro protocolo u orden.
+Conecta por DIN siguiendo las flechas. Usa datos cortos y GND común. La tira se alimenta desde la fuente; su corriente no debe circular por la placa. Nunca conectes 5 V a un GPIO ni a 3V3.
 
-## Recomendaciones de seguridad
+Para dos metros: 16 W / 5 V = 3,2 A de consumo máximo publicado. Dimensiona fuente y cables con margen y comprueba caída de tensión al aumentar brillo. El límite de brillo no sustituye una instalación eléctrica adecuada.
 
-1. Alimentar la tira directamente desde una fuente de 5 V adecuada, **no** desde el pin 5 V o 3,3 V de la placa ESP32.
-2. Compartir tierra entre ESP32, fuente, adaptador lógico y tira.
-3. Verificar polaridad antes de encender. No conectar ni desconectar cables bajo tensión.
-4. Colocar un fusible apropiado cerca de la salida de la fuente y usar conductores adecuados a la corriente.
-5. Considerar inyección de alimentación en ambos extremos para reducir caída de tensión; comprobar diferencias de potencial antes de conectar.
-6. Mantener cables de señal cortos; una resistencia serie en datos y un condensador de filtrado pueden mejorar robustez según la tira.
-7. Proteger la fuente y las conexiones frente a cortocircuitos, humedad y calor. Si no tienes experiencia con alimentación de varios amperios, solicita revisión de un técnico.
+GPIO4 es un valor inicial, no una garantía para todas las placas. El firmware filtra varias reservas de flash, USB y consola, pero no conoce todos los periféricos de cada fabricante. D4 no siempre es GPIO4. Comprueba el esquema de tu modelo.
 
-## Micrófono INMP441 (futuro)
-
-El INMP441 utiliza I²S (BCLK, WS, SD, alimentación y tierra). La asignación de pines y la configuración del canal deben documentarse cuando se implemente la captura de audio en firmware.
+Los binarios publicados son para ESP32-C6 y ESP32 clásico/WROOM genéricos de 4 MB. C3/S2/S3 no tienen binarios verificados en esta entrega. La señal directa de 3,3 V puede funcionar o fallar según la tira y el cableado; no se ha validado físicamente ni se garantiza sin adaptación de nivel.

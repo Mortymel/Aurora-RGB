@@ -1,28 +1,19 @@
 ---
-name: Reporte de error
-about: Informar un fallo reproducible en la app, firmware o compilación
-title: "[Bug] "
-labels: bug
+name: "Fallo de Aurora"
+about: "Informar de un fallo reproducible en Aurora, LEDWeb o el instalador"
+title: ""
+labels: ""
 assignees: ""
 ---
 
-## Resumen
-Describe el problema.
+# Fallo de Aurora
 
-## Pasos para reproducir
-1.
-2.
-3.
+Describe los pasos, resultado esperado y resultado real.
 
-## Resultado esperado
+- Aurora Android / LEDWeb: versiones.
+- Entorno: demo, teléfono/Android, router y modelo exacto ESP32/tira.
+- Conexión: IP/mDNS, AP o Wi-Fi habitual; MQTT si afecta.
+- ¿Ocurre con la última compilación correcta? ¿Desde cuándo?
+- Captura o logs sin contraseñas, tokens ni datos sensibles.
 
-## Resultado obtenido
-
-## Entorno
-- Versión de app / commit:
-- Versión de firmware (si aplica):
-- Modelo Android / versión:
-- Hardware y tira LED:
-
-## Logs o capturas (sin credenciales)
-
+Consulta primero docs/SOLUCION-DE-PROBLEMAS.md. Compilar correctamente no demuestra compatibilidad física.

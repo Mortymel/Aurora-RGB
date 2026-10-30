@@ -1,7 +1,13 @@
-# Seguridad — 0.8.0
+# Seguridad de Aurora
 
-El alta inicial requiere BLE cifrado con emparejamiento Just Works y una ventana de configuración de 10 minutos. La reapertura de una placa configurada requiere BOOT físico. No hay AP WiFi abierto. Las credenciales no se guardan en las preferencias de Android, pero sí en NVS de ESP32 sin cifrado en reposo.
+Usa el controlador en una LAN de confianza. HTTP Basic y MQTT sin TLS no cifran credenciales ni comandos. No abras puertos del controlador o broker hacia Internet.
 
-Just Works no proporciona protección contra intermediario activo ni prueba criptográfica de posesión. HTTP local y MQTT opcional no tienen TLS ni autenticación propia del controlador. La firma actual del APK es de desarrollo. No desplegar en redes públicas ni exponer la placa a Internet. Para producción faltan identidad/autenticación, gestión de claves, firma estable, cifrado de almacenamiento y validación física.
+Cambia WEB_PASSWORD y AP_PASSWORD de config.h al compilar para uso permanente. Los binarios genéricos incluyen admin/tiraesp32 y AP tiraesp32. Wi-Fi y MQTT se cambian desde la interfaz; GET config solo indica si existe clave.
 
-Consulta el [informe de auditoría](docs/AUDITORIA.md) para correcciones, riesgos residuales y pruebas pendientes. No publiques contraseñas WiFi, claves privadas, tokens ni volcados NVS al informar un problema.
+La app usa almacenamiento protegido Android y deshabilita backup/transferencia de esos datos. Eso no cifra el tráfico HTTP ni la NVS del firmware. No publiques claves privadas, volcados de memoria o capturas con contraseñas. El repositorio no incluye una firma estable de distribución para Google Play.
+
+La app bloquea redirecciones de credenciales, limita respuestas y tiempos; el firmware autentica su interfaz, requiere JSON y valida campos. Estos controles no equivalen a una auditoría independiente. La consulta mDNS descubre direcciones, no autentica equipos.
+
+Para avisar de un fallo sin secretos usa un issue con versiones y pasos. Si el problema contiene información sensible, no la incluyas públicamente: no hay un canal privado de reporte confirmado en esta documentación.
+
+[Auditoría](docs/AUDITORIA.md).

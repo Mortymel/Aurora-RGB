@@ -1,17 +1,33 @@
-# Instalación — 0.8.0
+# Instalar Aurora y conectar una ESP32
 
-1. Comprueba placa ESP32-WROOM-32, flash de 4 MB y tira compatible con WS2812B/GRB. Desconecta la tira durante el flasheo.
-2. Abre https://mortymel.github.io/ESP32-RGB-Studio-/ desde Chrome o Edge de escritorio y conecta USB con un cable de datos. Instala firmware 0.8.0; si borras la flash se pierden los datos anteriores.
-3. Descarga el artefacto Android APK de la ejecución exitosa para 0.8.0+9. Descomprime e instala `app-release.apk`.
-4. Abre **Añadir tira → Buscar por Bluetooth**, selecciona `MortysLED-…` y completa WiFi de **2,4 GHz**, contraseña, nombre y cantidad de píxeles. Acepta el emparejamiento Bluetooth de Android.
-5. Espera confirmación. La app añade la IP devuelta por la placa. Para controlarla, el teléfono debe estar en la misma red WiFi.
+## Requisitos
 
-No necesitas escribir una IP para dar de alta una ESP32 nueva. **Ya está conectada al WiFi** permite recuperar una placa ya configurada mediante mDNS o entrada manual.
+Android 7.0 o superior. Para flashear: Chrome o Edge de escritorio con Web Serial, conexión HTTPS, cable USB de datos y una placa ESP32-C6 o ESP32 clásico/WROOM con flash de al menos 4 MB. No existe un único binario para todas las familias ESP32.
 
-BOOT pulsado 3 segundos después del arranque reabre el modo Bluetooth durante 10 minutos. No hace falta borrar ni reflashear para cambiar de router. No mantengas BOOT mientras conectas la alimentación: ese gesto puede activar el cargador de arranque.
+## Firmware
 
-Solo una contraseña validada por conexión se guarda. Ante error se mantienen las credenciales anteriores. La app anterior y el firmware anterior no soportan el protocolo de alta 0.8.0: actualiza ambos.
+Abre el [web flasher](https://mortymel.github.io/ESP32-RGB-Studio-/), desconecta la tira durante la instalación, conecta la placa por USB y cierra el monitor serie. Pulsa Conectar e instalar y elige el puerto. El instalador detecta el chip. La instalación puede borrar el programa y la configuración anteriores.
 
-El APK utiliza firma de desarrollo; si Android muestra conflicto de firma, puede ser necesario desinstalar la versión anterior. Esto borra controladores y escenas guardados en el teléfono. La ESP32 conserva su configuración y puede volver a añadirse por WiFi.
+Si no entra en descarga, mantén BOOT, pulsa RESET y suelta BOOT cuando empiece a conectar. Los controladores USB dependen de la placa; consulta su fabricante si no aparece un puerto.
 
-Consulta [Bluetooth](BLUETOOTH.md), [hardware](HARDWARE.md) y [auditoría](AUDITORIA.md) para límites y validación pendiente.
+## APK
+
+En [Actions](https://github.com/Mortymel/ESP32-RGB-Studio-/actions?query=workflow%3A%22Aurora+Flutter+Android%22), abre una ejecución correcta de Aurora Flutter Android y descarga el artefacto `Aurora-Flutter-Android-1.1.0`. Extrae e instala `app-release.apk`. Autoriza la instalación desde esa fuente si Android lo solicita. Puedes entrar en Probar sin placa.
+
+El APK tiene firma de prueba. Si una versión anterior tiene otra firma, Android puede rechazar la actualización. Desinstalar elimina las credenciales y preferencias locales: anota las direcciones y asegúrate de conocer tus claves antes de hacerlo. No se proporciona todavía actualización estable desde Google Play.
+
+## Primera conexión
+
+1. Reinicia la ESP32 y conecta el teléfono a `LEDWeb-…`, clave inicial `tiraesp32`.
+2. En Añadir ESP32 introduce nombre, `192.168.4.1`, usuario `admin` y contraseña inicial `tiraesp32`. Si compilaste con otras claves, usa esas.
+3. En Ajustes → Wi-Fi guarda tu SSID de 2,4 GHz y su contraseña.
+4. Vuelve a tu Wi-Fi habitual. Busca la IP asignada en el router o monitor serie a 115200 baudios.
+5. Edita IP y credenciales en Aurora o usa Buscar en mi Wi-Fi. Una reserva DHCP evita cambios de IP.
+
+Alternativa de configuración: abre `http://192.168.4.1` en el navegador desde el AP. Si no conecta a tu Wi-Fi, la placa mantiene/abre el AP de recuperación.
+
+## Ajustes iniciales
+
+320 píxeles, GPIO4 y GRB. La tira indicada tiene 160 píxeles por metro; dos metros corresponden a 320. Elige un GPIO libre real y prueba rojo/verde/azul a brillo bajo para comprobar el orden RGB/GRB. El arranque es apagado salvo que habilites recuperación del estado en LEDWeb 1.3.
+
+[Hardware](HARDWARE.md) · [Problemas](SOLUCION-DE-PROBLEMAS.md).

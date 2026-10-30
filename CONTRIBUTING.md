@@ -1,22 +1,11 @@
-# Cómo contribuir
+# Contribuir a Aurora
 
-Gracias por colaborar con ESP32 RGB Studio. El repositorio es privado actualmente; el acceso y las contribuciones dependen de sus permisos.
+Trabaja sobre las rutas y versiones del [README](README.md). La app actual está en su rama/PR; el Flutter raíz pertenece al código heredado.
 
-## Propuesta de cambios
+1. Describe el problema y una reproducción concreta en un issue. Incluye versión, placa, Android y si ocurre en demo o hardware.
+2. Usa una rama descriptiva; no incluyas credenciales, tokens, config.local.h, claves de firma, cachés ni binarios de herramientas.
+3. Para app: dentro de apps/aurora_flutter ejecuta flutter pub get, flutter analyze y flutter test con Flutter 3.47.8. Al regenerar Android conserva pubspec.lock antes de flutter create, restáuralo después y ejecuta scripts/configure_android.py. El workflow implementa esa secuencia.
+4. Para firmware: genera el header web y compila C6 y ESP32 clásico con las dependencias fijadas. Ejecuta verify-flasher.py con las dos imágenes fusionadas.
+5. Comprueba contratos de API, compatibilidad de preferencias, respuesta ante red desconectada, tamaño móvil y seguridad de credenciales. Prueba las rutas afectadas; no anuncies validación física si solo compilaste.
 
-1. Abrir un issue describiendo el problema, la versión y los pasos para reproducirlo.
-2. Crear una rama `feature/...` o `fix/...`.
-3. Mantener los cambios pequeños y documentar decisiones relevantes.
-4. Ejecutar `flutter pub get` y `flutter analyze --no-fatal-infos` antes de enviar una pull request.
-5. Incluir pruebas cuando exista infraestructura para el componente afectado.
-
-## Convenciones
-
-- Mensajes de commit descriptivos.
-- No subir credenciales WiFi, tokens, certificados, claves de firma ni archivos `.env` privados.
-- Las modificaciones de hardware deben indicar tensiones, corrientes, pines y riesgos.
-- No marcar funciones como terminadas sin una prueba reproducible.
-
-## Reportar errores
-
-Incluir: pasos, comportamiento esperado, resultado real, modelo Android, versión del firmware, versión de la app y extracto de logs **sin secretos**.
+Una pull request debe describir el comportamiento final, pruebas realizadas y límites. Distingue funciones entregadas de propuestas.

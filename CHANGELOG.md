@@ -1,48 +1,19 @@
-## 0.8.0 — 2026-10-26
+# Cambios de Aurora
 
-- Alta por Bluetooth LE: WiFi, nombre y cantidad de píxeles desde Android.
-- Confirmación de WiFi y almacenamiento en ESP32; recuperación mediante BOOT.
-- Características BLE cifradas, comandos fragmentados y validación de límites.
-- Eliminado el punto de acceso abierto del arranque.
-- Firmware y app deben actualizarse juntos; partición de aplicación de 3 MB (sin OTA).
-- Pruebas de protocolo y del asistente, incluidos fallos y cancelación.
+## Aurora 1.1.0 / LEDWeb 1.3.0 — 2026-10-30
 
-# Historial de versiones — Morty's LED
+Búsqueda mDNS, color en vivo con agrupación de gestos, deshacer, rechazo de horarios contradictorios, diagnóstico, límite de brillo, transición de encendido/apagado, dirección invertida y recuperación optativa del estado persistido. Flasher con aspecto Aurora. 16 pruebas Flutter y compilaciones Android/C6/ESP32 verificadas; hardware y MQTT real pendientes.
 
-El número visible en Android procede de `pubspec.yaml` (`versionName+versionCode`). La etiqueta de compilación y el APK deben usar el mismo número.
+## Aurora 1.0.2
 
-## 0.5.0+5 — En compilación
+Rueda táctil, colores rápidos, RGB/HEX avanzado y botón Aplicar fijo.
 
-- Doce efectos enumerados en la aplicación, alineados con el nuevo firmware ESP32.
-- Brillo y velocidad controlables desde la app y la API del firmware.
-- Firmware ESP32 0.1.0-dev con FastLED, WiFi local y base MQTT Discovery.
-- Proyecto PlatformIO y flasheador web basado en ESP Web Tools (pendiente de binario y publicación HTTPS).
-- Eliminado el acceso redundante de la esquina superior derecha.
-- Firmware y hardware aún sin validar físicamente.
+## Aurora 1.0.1
 
-## 0.4.0+4 — Desarrollo
+Tarjetas de efectos con muestras del renderizador y contraseñas guardadas presentadas como Configurada → Cambiar. Esfera sin emoji y formularios sin contadores innecesarios.
 
-- Nombre de instalación Android: **Morty's LED**.
-- Tarjetas deslizables para varios controladores en Inicio.
-- Nombres editables, selección y gestión de dispositivos.
-- Correcciones de respuestas de conexión obsoletas.
-- Auditoría técnica y plan de firmware v0.2.
+## Aurora 1.0.0 / LEDWeb 1.2
 
-## 0.3 — Iteraciones de desarrollo anteriores (sin versión de paquete independiente)
+Primera app Android nativa independiente con diseño Aurora, 32 efectos, horarios, MQTT, varios controladores y demo. Integración de la interfaz web en LEDWeb y publicación del instalador para C6/ESP32 clásico.
 
-- Galería de escenas, controles, temporizador y mejoras visuales.
-- Gestión de dispositivos múltiples y documentación MQTT.
-- Compilaciones de CI anteriores usaron `version: 0.2.0+2` pese a cambios de interfaz.
-
-## 0.2.0+2 — Primera serie APK
-
-- Cliente HTTP local, escaneo BLE experimental y Flutter Android.
-- Primeros APK generados por GitHub Actions.
-
-## Convención a partir de ahora
-
-- **MAJOR.MINOR.PATCH+BUILD**: ejemplo `0.4.0+4`.
-- Incrementar BUILD en cada entrega instalable; incrementar PATCH para correcciones, MINOR para funciones.
-- No crear una etiqueta Git ni publicar una release hasta que CI termine correctamente.
-- El firmware usa su propio versionado (por ejemplo `0.2.0`) y anuncia `api_version`.
-
+El código previo a Aurora permanece en el historial y en directorios heredados. Sus versiones, API y flujo Bluetooth no describen el proyecto actual.

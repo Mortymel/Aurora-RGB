@@ -1,20 +1,11 @@
-# Arquitectura — 0.8.0
+# Arquitectura de Aurora
 
-`App Android → BLE cifrado → ESP32 → WiFi de 2,4 GHz → HTTP local → control LED`
+La app Flutter nativa se conecta por HTTP Basic a cada ESP32 en la LAN. La ESP32 genera los efectos, aplica límites y transiciones, conserva preferencias en NVS, ejecuta horarios y cuenta atrás y mantiene MQTT con Home Assistant. El navegador se usa para instalar por USB o abrir la interfaz alojada en la placa.
 
-- `lib/add_device_wizard.dart`: interfaz del alta BLE, formulario, errores, cancelación y confirmación.
-- `lib/ble_provisioning.dart`: permisos por SDK, escaneo por servicio, emparejamiento, escritura fragmentada y consulta de estado.
-- `lib/provisioning_protocol.dart`: contrato, límites y validación de la respuesta; sin guardar la contraseña en el modelo persistente.
-- `lib/lan_device_wizard.dart`: alternativa para placas ya conectadas al WiFi, con mDNS o entrada manual.
-- `lib/main.dart`: controladores, estado, escenas y temporizador local ligado a su controlador original.
-- `firmware/src/provisioning.h`: GATT y máquina de estados no bloqueante; cola entre callback BLE y bucle principal. Los cambios WiFi, FastLED y NVS se realizan en el bucle principal.
-- `firmware/src/provisioning_validation.h`: validación y ensamblado de bytes compartidos con pruebas C++ de escritorio.
-- `firmware/src/main.cpp`: HTTP, FastLED, efectos, persistencia y MQTT opcional existente.
+Código de app: [rama Aurora](https://github.com/Mortymel/ESP32-RGB-Studio-/tree/codex/aurora-flutter-android/apps/aurora_flutter). `models.dart` define y valida el protocolo; `device_api.dart` implementa HTTP y demo; `controller.dart` coordina estado, persistencia, sondeo, color en vivo y deshacer; `app_store.dart` usa almacenamiento protegido; `discovery.dart` implementa mDNS; `screens.dart/editors.dart` son widgets nativos y `light_visuals.dart/effect_card.dart/color_wheel.dart` dibujan las vistas.
 
-La placa solo guarda la configuración nueva después de obtener conexión. Una entrada NVS agrupa SSID, contraseña, nombre y píxeles; futuras modificaciones de longitud sincronizan esa entrada. El resto del estado LED permanece en preferencias. Identidad basada en los 48 bits de la MAC, no únicamente en un prefijo compartido.
+HTTP: timeout de 8 s, límite de respuesta 64 KiB, sin redirecciones con credenciales y sin reintentos automáticos de escrituras fallidas. Las respuestas de sondeo se comprueban contra dispositivo/revisión para no contaminar otro controlador. La vista en vivo agrupa gestos y envía el último valor con un intervalo de 180 ms, esperando si hay una operación en curso.
 
-Las preferencias del teléfono contienen identidad, IP, nombre y píxeles; nunca la contraseña del WiFi. La IP es la asignada por DHCP: si cambia, se requiere redescubrimiento por WiFi o edición. No existe conexión a nube.
+Los controladores y preferencias de la app se guardan protegidos en Android; escenas/favoritos pertenecen al teléfono. Horarios, red y política de salida pertenecen a la ESP32. La cuenta atrás vive en RAM de la placa. NVS del firmware no tiene cifrado adicional del proyecto.
 
-El temporizador se ejecuta en el teléfono: no sobrevive al cierre del proceso ni debe interpretarse como horario persistente de firmware. El modo música, segmentos y OTA no están implementados. La app no configura aún el broker MQTT.
-
-Las pruebas de widgets utilizan un transporte BLE sustituible para reproducir éxito, error y respuestas tardías. Estas pruebas no simulan radio, pila Bluetooth de Android, consumo real de RAM ni temporización física de la tira. Ver [auditoría](AUDITORIA.md).
+Firmware: ledweb/firmware/LEDWeb. La interfaz web es independiente de los widgets Flutter: se empaqueta con ledweb/scripts/build-aurora.cjs como header gzip. Publicación: aurora-flasher.yml compila dos chips y despliega web-flasher/aurora en Pages. El workflow antiguo solo conserva artefactos heredados.
