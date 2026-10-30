@@ -1,0 +1,90 @@
+name: Publish Aurora APK Release
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/aurora-release.yml']
+  workflow_run:
+    workflows: ['Aurora Flutter Android']
+    types: [completed]
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: aurora-apk-releases
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'codex/aurora-flutter-android'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Select successful Aurora build and download artifact
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const {owner, repo} = context.repo;
+            let run = context.payload.workflow_run;
+            if (!run) {
+              const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {owner, repo, status:'success', event:'push', per_page:100});
+              run = runs.filter(r => r.name === 'Aurora Flutter Android' && ['main','codex/aurora-flutter-android'].includes(r.head_branch)).sort((a,b)=>b.id-a.id)[0];
+            }
+            if (!run || run.conclusion !== 'success' || run.event !== 'push' || run.head_repository.full_name !== `${owner}/${repo}`) throw Error('No trusted successful Aurora push build');
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {owner, repo, run_id:run.id, per_page:100});
+            const artifact = artifacts.find(a=>!a.expired && a.name.startsWith('Aurora-Flutter-Android-'));
+            if (!artifact) throw Error('APK artifact missing or expired');
+            const download = await github.rest.actions.downloadArtifact({owner,repo,artifact_id:artifact.id,archive_format:'zip'});
+            fs.writeFileSync(`${process.env.RUNNER_TEMP}/aurora.zip`,Buffer.from(download.data));
+            fs.writeFileSync(`${process.env.RUNNER_TEMP}/build.json`,JSON.stringify({run:run.id,sha:run.head_sha}));
+      - name: Validate APK hash and version; prepare release files
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,os,re,zipfile
+          from pathlib import Path
+          root=Path(os.environ['RUNNER_TEMP'])
+          out=root/'release'; out.mkdir()
+          with zipfile.ZipFile(root/'aurora.zip') as archive:
+              def read(name):
+                  entries=[e for e in archive.infolist() if Path(e.filename).name==name]
+                  if len(entries)!=1 or entries[0].file_size>100*1024*1024: raise ValueError('Invalid artifact entry')
+                  return archive.read(entries[0])
+              apk=read('app-release.apk')
+              expected=read('app-release.apk.sha256').decode().split()[0]
+              actual=hashlib.sha256(apk).hexdigest()
+              if expected!=actual: raise ValueError('APK hash mismatch')
+              metadata=read('app-release.apk.metadata.txt').decode()
+          if "name='com.mortymel.aurora_led'" not in metadata: raise ValueError('Wrong application')
+          version=re.search(r"versionName='([0-9]+\.[0-9]+\.[0-9]+)'",metadata)
+          if not version: raise ValueError('Invalid version')
+          version=version.group(1)
+          name=f'Aurora-{version}.apk'
+          (out/name).write_bytes(apk)
+          (out/(name+'.sha256')).write_text(actual+'  '+name+'\n')
+          (out/f'Aurora-{version}.metadata.txt').write_text(metadata)
+          build=json.loads((root/'build.json').read_text());build['version']=version
+          (root/'build.json').write_text(json.dumps(build))
+          print('APK identity, version and SHA-256 verified:',version)
+          PY
+      - name: Publish release only after all files are uploaded
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs=require('fs');
+            const {owner,repo}=context.repo;
+            const build=JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/build.json`));
+            const tag=`aurora-v${build.version}-build-${build.run}`;
+            const releases=await github.paginate(github.rest.repos.listReleases,{owner,repo,per_page:100});
+            let release=releases.find(r=>r.tag_name===tag);
+            const body=`APK Android nativo de Aurora ${build.version}.\n\nDescarga el archivo .apk e instálalo en Android 7 o superior. El archivo .sha256 permite comprobar su integridad.\n\nCompilación verificada: https://github.com/${owner}/${repo}/actions/runs/${build.run}\nCódigo: ${build.sha}\n\nFirma de prueba: puede no permitir actualizar una instalación firmada por otro entorno. Desinstalar elimina preferencias locales. No es una publicación en Google Play.\n\nFirmware e instrucciones: https://mortymel.github.io/ESP32-RGB-Studio-/\nDocumentación: https://github.com/${owner}/${repo}/blob/main/README.md\n\nPendiente de validación en teléfono, router, placa y tira reales.`;
+            if (!release) release=(await github.rest.repos.createRelease({owner,repo,tag_name:tag,target_commitish:build.sha,name:`Aurora ${build.version} · compilación ${build.run}`,body,draft:true,prerelease:false})).data;
+            const assets=await github.paginate(github.rest.repos.listReleaseAssets,{owner,repo,release_id:release.id,per_page:100});
+            for (const name of fs.readdirSync(`${process.env.RUNNER_TEMP}/release`)) {
+              const old=assets.find(a=>a.name===name);
+              if (old) await github.rest.repos.deleteReleaseAsset({owner,repo,asset_id:old.id});
+              await github.rest.repos.uploadReleaseAsset({owner,repo,release_id:release.id,name,data:fs.readFileSync(`${process.env.RUNNER_TEMP}/release/${name}`),headers:{'content-type':name.endsWith('.apk')?'application/vnd.android.package-archive':'text/plain'}});
+            }
+            const published=await github.rest.repos.updateRelease({owner,repo,release_id:release.id,body,draft:false,make_latest:'true'});
+            core.notice(`Published ${published.data.html_url}`);
+            await core.summary.addHeading('Aurora APK publicado').addLink('Abrir Release',published.data.html_url).write();
+
