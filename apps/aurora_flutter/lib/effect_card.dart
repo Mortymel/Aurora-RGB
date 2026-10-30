@@ -128,7 +128,7 @@ class EffectArtwork extends CustomPainter {
               col * size.width / 48,
               row * size.height / 12,
               size.width / 48 + 1,
-              size.height / 12 * .78,
+              size.height / 12 + 1,
             ),
             const Radius.circular(2),
           ),
