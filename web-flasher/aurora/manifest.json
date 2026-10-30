@@ -1,0 +1,9 @@
+{
+  "name": "Aurora LEDWeb",
+  "version": "1.2.0",
+  "new_install_improv_wait_time": 0,
+  "builds": [
+    {"chipFamily": "ESP32-C6", "parts": [{"path": "firmware-c6.bin", "offset": 0}]},
+    {"chipFamily": "ESP32", "parts": [{"path": "firmware-wroom.bin", "offset": 0}]}
+  ]
+}

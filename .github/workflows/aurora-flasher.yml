@@ -1,0 +1,55 @@
+name: Aurora Firmware and Web Flasher
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['ledweb/**', 'web-flasher/aurora/**', '.github/workflows/aurora-flasher.yml']
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: aurora-pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build Aurora web bundle
+        run: node ledweb/scripts/build-aurora.cjs
+      - name: Install pinned ESP32 tools
+        run: |
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32@3.3.12 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli lib install 'Adafruit NeoPixel@1.15.5' 'ArduinoJson@7.4.3' 'PubSubClient@2.8'
+      - name: Compile both chip families
+        run: |
+          arduino-cli compile --fqbn esp32:esp32:esp32c6 --output-dir build/c6 ledweb/firmware/LEDWeb
+          arduino-cli compile --fqbn esp32:esp32:esp32 --output-dir build/wroom ledweb/firmware/LEDWeb
+          cp build/c6/LEDWeb.ino.merged.bin web-flasher/aurora/firmware-c6.bin
+          cp build/wroom/LEDWeb.ino.merged.bin web-flasher/aurora/firmware-wroom.bin
+      - name: Verify installer images
+        run: python3 ledweb/scripts/verify-flasher.py web-flasher/aurora
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Aurora-Web-Flasher-1.2
+          path: web-flasher/aurora/
+          if-no-files-found: error
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web-flasher/aurora/
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment
