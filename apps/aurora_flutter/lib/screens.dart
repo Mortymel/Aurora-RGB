@@ -1,6 +1,7 @@
 import 'discovery.dart';
 import 'effect_card.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'controller.dart';
 import 'editors.dart';
 import 'light_visuals.dart';
@@ -253,33 +254,46 @@ class _AuroraHomeState extends State<AuroraHome> {
                   ? welcome()
                   : RefreshIndicator(
                       onRefresh: c.refresh,
-                      child: ListView(
-                        key: ValueKey(tab),
-                        padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
-                        children: [
-                          if (tab < 2 && c.config != null) ...[
-                            StripPreview(light: c.light),
-                            const SizedBox(height: 24),
-                          ],
-                          if (c.config == null) ...[
-                            const SizedBox(height: 40),
-                            const Text('Esperando al controlador…'),
-                            const SizedBox(height: 16),
-                            FilledButton(
-                              onPressed: c.busy
-                                  ? null
-                                  : () => deviceEditor(context, c, c.selected),
-                              child: const Text('Revisar IP y credenciales'),
+                      child: tab == 1 && c.config != null
+                          ? effects()
+                          : ListView(
+                              key: ValueKey(tab),
+                              padding: const EdgeInsets.fromLTRB(
+                                24,
+                                12,
+                                24,
+                                28,
+                              ),
+                              children: [
+                                if (tab == 0 && c.config != null) ...[
+                                  StripPreview(light: c.light),
+                                  const SizedBox(height: 24),
+                                ],
+                                if (c.config == null) ...[
+                                  const SizedBox(height: 40),
+                                  const Text('Esperando al controlador…'),
+                                  const SizedBox(height: 16),
+                                  FilledButton(
+                                    onPressed: c.busy
+                                        ? null
+                                        : () => deviceEditor(
+                                            context,
+                                            c,
+                                            c.selected,
+                                          ),
+                                    child: const Text(
+                                      'Revisar IP y credenciales',
+                                    ),
+                                  ),
+                                ] else
+                                  switch (tab) {
+                                    0 => home(),
+                                    1 => effects(),
+                                    2 => schedules(),
+                                    _ => settings(),
+                                  },
+                              ],
                             ),
-                          ] else
-                            switch (tab) {
-                              0 => home(),
-                              1 => effects(),
-                              2 => schedules(),
-                              _ => settings(),
-                            },
-                        ],
-                      ),
                     ),
             ),
           ],
@@ -542,92 +556,119 @@ class _AuroraHomeState extends State<AuroraHome> {
                   effectGroup(effectNames.indexOf(name)) == filter),
         )
         .toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        title('Efectos'),
-        TextField(
-          decoration: const InputDecoration(
-            hintText: 'Buscar efecto…',
-            prefixIcon: Icon(Icons.search),
-          ),
-          onChanged: (v) => setState(() => query = v),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 7,
-          children: ['Todos', 'Ambiente', 'Movimiento', 'Fiesta', 'Favoritos']
-              .map(
-                (name) => ChoiceChip(
-                  label: Text(name),
-                  selected: filter == name,
-                  onSelected: (_) => setState(() => filter = name),
-                ),
-              )
-              .toList(),
-        ),
-        const SizedBox(height: 10),
-        if (visible.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(20),
-            child: Text('No hay coincidencias.'),
-          ),
-        LayoutBuilder(
-          builder: (context, constraints) => Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: visible
-                .map(
-                  (name) => SizedBox(
-                    width: (constraints.maxWidth - 12) / 2,
-                    child: EffectCard(
-                      name: name,
-                      light: c.light,
-                      selected: c.light.effect == name,
-                      favorite: c.favorites.contains(name),
-                      onFavorite: () => act(() => c.favorite(name)),
-                      onApply: ready
-                          ? () => act(
-                              () => c.command('light', {
-                                'state': 'ON',
-                                'effect': name,
-                              }),
-                            )
-                          : null,
-                    ),
+    final saved = filter == 'Favoritos' ? c.scenes : <Json>[];
+    final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+    return CustomScrollView(
+      scrollCacheExtent: ScrollCacheExtent.pixels(180),
+      key: const PageStorageKey('effects-gallery'),
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 10),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                title('Efectos'),
+                TextField(
+                  decoration: const InputDecoration(
+                    hintText: 'Buscar efecto…',
+                    prefixIcon: Icon(Icons.search),
                   ),
-                )
-                .toList(),
-          ),
-        ),
-        if (filter == 'Favoritos' && c.scenes.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          title('Ambientes guardados'),
-          ...c.scenes.map(
-            (scene) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(scene['name'] as String),
-              subtitle: Text(scene['effect'] as String),
-              onTap: ready
-                  ? () => act(
-                      () => c.command('light', {
-                        'state': 'ON',
-                        'effect': scene['effect'],
-                        'color': scene['color'],
-                        'brightness': scene['brightness'],
-                        'speed': scene['speed'],
-                      }),
-                    )
-                  : null,
-              trailing: IconButton(
-                tooltip: 'Eliminar ambiente',
-                onPressed: () =>
-                    act(() => c.deleteScene(scene['id'] as String)),
-                icon: const Icon(Icons.delete_outline),
-              ),
+                  onChanged: (value) => setState(() => query = value),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 7,
+                  children:
+                      ['Todos', 'Ambiente', 'Movimiento', 'Fiesta', 'Favoritos']
+                          .map(
+                            (name) => ChoiceChip(
+                              label: Text(name),
+                              selected: filter == name,
+                              onSelected: (_) => setState(() => filter = name),
+                            ),
+                          )
+                          .toList(),
+                ),
+                if (visible.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text('No hay coincidencias.'),
+                  ),
+              ],
             ),
           ),
-        ],
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          sliver: SliverGrid.builder(
+            itemCount: visible.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: MediaQuery.sizeOf(context).width >= 600 ? 3 : 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              mainAxisExtent: 142 + 54 * scale,
+            ),
+            itemBuilder: (context, index) {
+              final name = visible[index];
+              return RepaintBoundary(
+                child: EffectCard(
+                  key: ValueKey(name),
+                  name: name,
+                  light: c.light,
+                  selected: c.light.effect == name,
+                  favorite: c.favorites.contains(name),
+                  onFavorite: () => act(() => c.favorite(name)),
+                  onApply: ready
+                      ? () => act(
+                          () => c.command('light', {
+                            'state': 'ON',
+                            'effect': name,
+                          }),
+                        )
+                      : null,
+                ),
+              );
+            },
+          ),
+        ),
+        if (saved.isNotEmpty)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            sliver: SliverToBoxAdapter(child: title('Ambientes guardados')),
+          ),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          sliver: SliverList.builder(
+            itemCount: saved.length,
+            itemBuilder: (context, index) {
+              final scene = saved[index];
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(scene['name'] as String),
+                subtitle: Text(scene['effect'] as String),
+                onTap: ready
+                    ? () => act(
+                        () => c.command('light', {
+                          'state': 'ON',
+                          'effect': scene['effect'],
+                          'color': scene['color'],
+                          'brightness': scene['brightness'],
+                          'speed': scene['speed'],
+                        }),
+                      )
+                    : null,
+                trailing: IconButton(
+                  tooltip: 'Eliminar ambiente',
+                  onPressed: () =>
+                      act(() => c.deleteScene(scene['id'] as String)),
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              );
+            },
+          ),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 28)),
       ],
     );
   }
@@ -823,11 +864,11 @@ class _AuroraHomeState extends State<AuroraHome> {
         tile(
           Icons.info_outline,
           'Acerca de Aurora',
-          'Android · Flutter · 1.1.0',
+          'Android · Flutter · 1.1.1',
           () => showAboutDialog(
             context: context,
             applicationName: 'Aurora',
-            applicationVersion: '1.1.0',
+            applicationVersion: '1.1.1',
             children: [
               const Text(
                 'App nativa para ESP32 con LEDWeb 1.2. La vista previa aproxima el efecto; la esfera representa el color seleccionado. Control local por Wi-Fi. Los horarios pertenecen a la ESP32.',

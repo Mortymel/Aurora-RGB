@@ -1,4 +1,6 @@
-# Aurora Android 1.1.0
+# Aurora Android 1.1.1
+
+La pestaña Efectos utiliza un catálogo de carga progresiva, muestras estáticas y aislamiento de repintado por tarjeta. Se elimina la simulación animada de esa pestaña; la vista animada se conserva solo en Mi luz. Las pruebas comprueban que no se montan las 32 tarjetas de golpe y que se puede llegar al último efecto y aplicarlo.
 
 App nativa Flutter para ESP32 con LEDWeb 1.3.0. Código actual: [rama Aurora](https://github.com/Mortymel/ESP32-RGB-Studio-/tree/codex/aurora-flutter-android/apps/aurora_flutter). Integración en [PR #1](https://github.com/Mortymel/ESP32-RGB-Studio-/pull/1); no asumir que el código de la app está fusionado en main. El Flutter de la raíz es heredado.
 

@@ -8,6 +8,7 @@ import 'package:aurora_led/app_store.dart';
 import 'package:aurora_led/controller.dart';
 import 'package:aurora_led/main.dart';
 import 'package:aurora_led/light_visuals.dart';
+import 'package:aurora_led/effect_card.dart';
 
 void main() {
   setUpAll(() async {
@@ -99,8 +100,25 @@ void main() {
     expect(controller.config?['mqtt_host'], '192.168.1.10');
     await tester.tap(find.text('Efectos'));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.byType(StripPreview), findsOneWidget);
+    expect(find.byType(StripPreview), findsNothing);
     expect(find.text('Color fijo'), findsWidgets);
+    expect(find.byType(EffectCard).evaluate().length, lessThan(32));
+    final gallery = tester.state<ScrollableState>(
+      find
+          .descendant(
+            of: find.byType(CustomScrollView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    gallery.position.jumpTo(gallery.position.maxScrollExtent);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Gradiente vivo'), findsOneWidget);
+    await tester.tap(find.text('Gradiente vivo'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(controller.light.effect, 'Gradiente vivo');
+    gallery.position.jumpTo(0);
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.runAsync(() async {
       final image = await boundary.toImage(pixelRatio: 1);
       final data = await image.toByteData(format: ui.ImageByteFormat.png);

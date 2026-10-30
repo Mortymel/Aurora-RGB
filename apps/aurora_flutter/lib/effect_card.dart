@@ -42,7 +42,13 @@ class EffectCard extends StatelessWidget {
                 child: SizedBox(
                   height: 104,
                   width: double.infinity,
-                  child: CustomPaint(painter: EffectArtwork(name, light)),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: effectSwatch(name, light),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -100,54 +106,57 @@ class EffectCard extends StatelessWidget {
   );
 }
 
-// A spatial/time sample of the actual preview renderer, rather than unrelated hues.
-class EffectArtwork extends CustomPainter {
-  EffectArtwork(this.name, this.light);
-  final String name;
-  final Light light;
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..color = const Color(0xff090c16),
-    );
-    final sample = Light(
-      on: true,
-      brightness: 255,
-      r: light.r,
-      g: light.g,
-      b: light.b,
-      effect: name,
-    );
-    for (var row = 0; row < 12; row++) {
-      for (var col = 0; col < 48; col++) {
-        final color = effectColor(sample, col / 48, .24 + row * .057);
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromLTWH(
-              col * size.width / 48,
-              row * size.height / 12,
-              size.width / 48 + 1,
-              size.height / 12 + 1,
-            ),
-            const Radius.circular(2),
-          ),
-          Paint()..color = color,
-        );
-      }
-    }
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.transparent, Color(0x66000000)],
-        ).createShader(Offset.zero & size),
-    );
+// Static swatches: no animation or per-pixel effect simulation in the gallery.
+List<Color> effectSwatch(String name, Light light) {
+  final index = effectNames.indexOf(name), base = rgb(light);
+  if (index == 0) return [base, base];
+  if (index == 1) {
+    return [
+      Colors.red,
+      Colors.yellow,
+      Colors.green,
+      Colors.cyan,
+      Colors.blue,
+      Colors.purple,
+    ];
   }
-
-  @override
-  bool shouldRepaint(covariant EffectArtwork old) =>
-      old.name != name || old.light.color.toString() != light.color.toString();
+  if (index == 2 || index == 23) {
+    return [
+      Colors.purple,
+      Colors.blue,
+      Colors.cyan,
+      Colors.green,
+      Colors.yellow,
+      Colors.red,
+    ];
+  }
+  if ([3, 4, 5, 7, 11, 12, 13, 14, 30].contains(index)) {
+    return [shade(base, .12), base, shade(base, .45)];
+  }
+  final paletteIndex = switch (index) {
+    8 || 18 || 25 => 3,
+    9 || 19 => 4,
+    10 || 17 || 22 => 2,
+    15 => 0,
+    16 => 1,
+    26 => 5,
+    27 => 6,
+    28 => 7,
+    _ => 0,
+  };
+  if (index == 20 || index == 29 || index == 31) {
+    return [
+      const Color(0xff6436cc),
+      const Color(0xffe762c1),
+      const Color(0xff49d3d7),
+    ];
+  }
+  if (index == 21) {
+    return [
+      const Color(0xff110d2e),
+      const Color(0xff674393),
+      const Color(0xffb8a3dd),
+    ];
+  }
+  return palettes[paletteIndex];
 }
