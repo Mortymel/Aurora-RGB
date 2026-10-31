@@ -325,7 +325,7 @@ class _AuroraHomeState extends State<AuroraHome> {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('Elegir color'),
+                      Flexible(child: Text('Elegir color')),
                       SizedBox(width: 5),
                       Icon(Icons.north_east, size: 16),
                     ],
@@ -827,3 +827,4 @@ class _ValueSliderState extends State<ValueSlider> {
     );
   }
 }
+
