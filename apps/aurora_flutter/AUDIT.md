@@ -36,3 +36,11 @@ Se sustituye la configuración global de la tira por sesiones independientes des
 La nueva prueba con dos placas simuladas verifica que guardar MQTT en Dormitorio escribe únicamente en su API, conserva Escritorio como seleccionado y no modifica su broker. También comprueba el regreso dentro de una sola ventana y que Ajustes no contiene controles de la luz.
 
 LEDWeb 1.3.0 recompilado con ESP32 Arduino 3.3.12, NeoPixel 1.15.5, ArduinoJson 7.4.3 y PubSubClient 2.8: C6 1.212.902 bytes de programa y 53.132 de RAM estática; ESP32 clásico 1.127.477 y 58.656 bytes. Se comprueban cabeceras, familia, tabla de particiones y tamaño de las imágenes fusionadas. No ha sido necesario cambiar el protocolo ni la versión del firmware. [Validación física pendiente](TECHNICAL-TESTS.md).
+
+## Corrección 1.2.1: JSON de órdenes HTTP
+
+En la prueba física se observó que las lecturas reconocían el ESP32, pero toda escritura devolvía `JSON invalido`. La app enviaba POST sin Content-Length y Dart utilizaba Transfer-Encoding: chunked. El WebServer de ESP32 Arduino 3.3.12 lee el cuerpo JSON de acuerdo con Content-Length; sin él, no expone el argumento plain que deserializa LEDWeb.
+
+La app codifica ahora el JSON en bytes UTF-8, establece contentLength con el tamaño de esos bytes y los envía directamente. Se aplica a luz, configuración, reloj y temporizador. No modifica el protocolo de LEDWeb ni requiere reflashear la placa.
+
+La nueva prueba de regresión reproduce exactamente `JSON invalido` antes de la corrección usando un servidor que rechaza cuerpos chunked como el ESP32. También comprueba longitud en bytes, nombres con acentos y todas las rutas de escritura. Las pruebas anteriores usaban un servidor HTTP que sí admitía chunked y no detectaban esta incompatibilidad.

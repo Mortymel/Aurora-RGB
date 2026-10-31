@@ -1,10 +1,10 @@
-# Pruebas técnicas de Aurora 1.2.0 y LEDWeb 1.3.0
+# Pruebas técnicas de Aurora 1.2.1 y LEDWeb 1.3.0
 
 Esta lista corresponde a la app Android nativa. La demostración del chat no descubre ni controla una ESP32 real.
 
 ## Antes de instalar
 
-- Usa el APK de Aurora 1.2.0 y firmware LEDWeb 1.3.0 de la familia correcta: ESP32-C6 o ESP32 clásico/WROOM. No intercambies sus binarios.
+- Usa el APK de Aurora 1.2.1 y firmware LEDWeb 1.3.0 de la familia correcta: ESP32-C6 o ESP32 clásico/WROOM. No intercambies sus binarios.
 - Las imágenes fusionadas de prueba son para flash de 4 MB y dirección 0x0. La prueba de compilación no identifica la flash real de una placa desconocida.
 - Para tu tira de 2 metros, comienza con 320 píxeles. GPIO4 es el valor inicial; comprueba que está disponible en tu placa.
 - Alimenta la tira a 5 V y une GND de fuente, tira y ESP32. DIN recibe los datos. No alimentes los 2 metros a través del pin de la placa.
@@ -44,3 +44,7 @@ Con el broker y la integración MQTT de Home Assistant operativos, el firmware p
 Las pruebas automatizadas verifican HTTP, autenticación, errores, aislamiento de dispositivos y navegación con simuladores/servidores locales. Las compilaciones comprueban código y formato de los binarios. No se ha confirmado físicamente la tira XGB1338, la señal de datos de 3,3 V, el router, el broker ni el teléfono del usuario.
 
 Registra modelo de placa, capacidad flash, GPIO, número de píxeles, teléfono/Android y resultados antes de considerar el conjunto validado en hardware.
+
+## Si aparece JSON invalido al enviar órdenes
+
+Aurora 1.2.1 corrige la longitud del cuerpo HTTP que requiere el ESP32. Instala el APK actualizado; no hace falta borrar la configuración ni volver a instalar LEDWeb 1.3.0 por este fallo. Repite encendido, apagado, brillo, efecto y temporizador.

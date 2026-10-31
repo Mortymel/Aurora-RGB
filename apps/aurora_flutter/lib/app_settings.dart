@@ -183,7 +183,7 @@ class AppSettings extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 16),
-      const Center(child: Text('Aurora 1.2.0', style: TextStyle(fontSize: 12))),
+      const Center(child: Text('Aurora 1.2.1', style: TextStyle(fontSize: 12))),
     ],
   );
 }

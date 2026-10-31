@@ -34,7 +34,13 @@ class LanApi implements DeviceApi {
           'Basic ${base64Encode(utf8.encode('${device.user}:${device.password}'))}',
         );
         request.headers.contentType = ContentType.json;
-        if (body != null) request.write(jsonEncode(body));
+        if (body != null) {
+          // ESP32 WebServer reads JSON using Content-Length, not chunked input.
+          // Count encoded bytes: Wi-Fi names and MQTT credentials can be UTF-8.
+          final payload = utf8.encode(jsonEncode(body));
+          request.contentLength = payload.length;
+          request.add(payload);
+        }
         final response = await request.close();
         if (response.statusCode == 401) {
           throw const ApiException(

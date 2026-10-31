@@ -84,6 +84,56 @@ void main() {
       }
     }
   });
+  test(
+    'ESP32 recibe JSON con longitud UTF-8 explícita en todas las escrituras',
+    () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      final device = Device(
+        id: 'esp32',
+        name: 'Tira',
+        address: 'http://127.0.0.1:${server.port}',
+      );
+      final cases = <String, Json>{
+        'light': {'state': 'ON', 'brightness': 127, 'effect': 'Color fijo'},
+        'config': {'ssid': 'Salón', 'mqtt_user': 'iluminación'},
+        'timer': {'minutes': 1, 'on': false},
+        'clock': {'epoch': 1793404800},
+      };
+      final received = <String>[];
+      server.listen((request) async {
+        final bytes = await request.fold<List<int>>(
+          [],
+          (all, part) => all..addAll(part),
+        );
+        final length = request.contentLength;
+        request.response.headers.contentType = ContentType.json;
+        // Arduino WebServer reads its plain body using Content-Length. A modern
+        // Dart HttpServer accepting chunked input would conceal this regression.
+        if (length < 0 || request.headers.chunkedTransferEncoding) {
+          request.response.statusCode = 400;
+          request.response.write('{"error":"JSON invalido"}');
+        } else {
+          expect(length, bytes.length);
+          final route = request.uri.path.split('/').last;
+          expect(bytes, utf8.encode(jsonEncode(cases[route])));
+          expect(jsonDecode(utf8.decode(bytes)), cases[route]);
+          received.add(route);
+          request.response.write('{"ok":true}');
+        }
+        await request.response.close();
+      });
+      try {
+        for (final entry in cases.entries) {
+          expect(await LanApi().request(device, entry.key, entry.value), {
+            'ok': true,
+          });
+        }
+        expect(received, cases.keys.toList());
+      } finally {
+        await server.close(force: true);
+      }
+    },
+  );
   test('Timeout cancela la conexión sin repetir la orden', () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     var count = 0;
