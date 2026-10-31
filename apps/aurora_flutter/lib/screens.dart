@@ -1,4 +1,6 @@
 import 'discovery.dart';
+import 'device_manager.dart';
+import 'app_settings.dart';
 import 'effect_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
@@ -33,96 +35,15 @@ class _AuroraHomeState extends State<AuroraHome> {
     }
   }
 
+  bool pickerOpen = false;
   Future<void> controllers() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      useSafeArea: true,
-      isScrollControlled: true,
-      builder: (context) => ListenableBuilder(
-        listenable: c,
-        builder: (context, child) => SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Mis controladores',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Cerrar',
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-                OutlinedButton.icon(
-                  onPressed: c.busy
-                      ? null
-                      : () async {
-                          Navigator.pop(context);
-                          await discoverControllers(this.context, c);
-                        },
-                  icon: const Icon(Icons.wifi_find),
-                  label: const Text('Buscar ESP32 en Wi-Fi'),
-                ),
-                ...c.devices.map(
-                  (d) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.memory),
-                    title: Text(d.name),
-                    subtitle: Text(d.address),
-                    selected: c.selected?.id == d.id,
-                    onTap: c.busy
-                        ? null
-                        : () async {
-                            await c.select(d);
-                            if (context.mounted) Navigator.pop(context);
-                          },
-                    trailing: IconButton(
-                      tooltip: 'Editar ${d.name}',
-                      onPressed: c.busy
-                          ? null
-                          : () async {
-                              Navigator.pop(context);
-                              await deviceEditor(this.context, c, d);
-                            },
-                      icon: const Icon(Icons.edit_outlined),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: c.busy
-                      ? null
-                      : () async {
-                          Navigator.pop(context);
-                          await deviceEditor(this.context, c);
-                        },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Añadir ESP32'),
-                ),
-                TextButton(
-                  onPressed: c.busy
-                      ? null
-                      : () async {
-                          await c.select(Device.demonstration);
-                          if (context.mounted) Navigator.pop(context);
-                        },
-                  child: const Text('Explorar demostración'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    if (pickerOpen) return;
+    setState(() => pickerOpen = true);
+    try {
+      await showDeviceManager(context, c);
+    } finally {
+      if (mounted) setState(() => pickerOpen = false);
+    }
   }
 
   @override
@@ -135,62 +56,69 @@ class _AuroraHomeState extends State<AuroraHome> {
         bottom: false,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 18, 18, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'LEDWEB / AURORA',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 2.2,
-                            color: Theme.of(context).colorScheme.primary,
+            if (tab != 3)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 18, 18, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'LEDWEB / AURORA',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 2.2,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
                           ),
-                        ),
-                        TextButton(
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            alignment: Alignment.centerLeft,
-                          ),
-                          onPressed: c.busy ? null : controllers,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  c.selected?.name ?? 'Tus luces',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.titleLarge,
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              alignment: Alignment.centerLeft,
+                            ),
+                            onPressed: c.busy ? null : controllers,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    c.selected?.name ?? 'Tus luces',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleLarge,
+                                  ),
                                 ),
-                              ),
-                              const Icon(Icons.keyboard_arrow_down),
-                            ],
+                                Icon(
+                                  pickerOpen
+                                      ? Icons.keyboard_arrow_up
+                                      : Icons.keyboard_arrow_down,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  IconButton.filledTonal(
-                    tooltip: c.light.on ? 'Apagar luz' : 'Encender luz',
-                    onPressed: ready
-                        ? () => act(
-                            () => c.command('light', {
-                              'state': c.light.on ? 'OFF' : 'ON',
-                            }),
-                          )
-                        : null,
-                    icon: const Icon(Icons.power_settings_new),
-                    iconSize: 27,
-                  ),
-                ],
+                    IconButton.filledTonal(
+                      tooltip: c.light.on ? 'Apagar luz' : 'Encender luz',
+                      onPressed: ready
+                          ? () => act(
+                              () => c.command('light', {
+                                'state': c.light.on ? 'OFF' : 'ON',
+                              }),
+                            )
+                          : null,
+                      icon: const Icon(Icons.power_settings_new),
+                      iconSize: 27,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            if (c.selected != null)
+            if (tab != 3 && c.selected != null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
                 child: Row(
@@ -224,7 +152,7 @@ class _AuroraHomeState extends State<AuroraHome> {
                   ],
                 ),
               ),
-            if (c.error != null)
+            if (tab != 3 && c.error != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Card(
@@ -250,7 +178,12 @@ class _AuroraHomeState extends State<AuroraHome> {
                 ),
               ),
             Expanded(
-              child: c.selected == null
+              child: tab == 3
+                  ? ListView(
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+                      children: [settings()],
+                    )
+                  : c.selected == null
                   ? welcome()
                   : RefreshIndicator(
                       onRefresh: c.refresh,
@@ -327,7 +260,7 @@ class _AuroraHomeState extends State<AuroraHome> {
         children: [
           ColorOrb(
             color: const Color(0xffb987d3),
-            onTap: () => deviceEditor(context, c),
+            onTap: () => discoverControllers(context, c),
           ),
           const SizedBox(height: 36),
           Text(
@@ -341,7 +274,7 @@ class _AuroraHomeState extends State<AuroraHome> {
           ),
           const SizedBox(height: 28),
           FilledButton.icon(
-            onPressed: () => deviceEditor(context, c),
+            onPressed: () => discoverControllers(context, c),
             icon: const Icon(Icons.add),
             label: const Text('Añadir ESP32'),
           ),
@@ -371,69 +304,83 @@ class _AuroraHomeState extends State<AuroraHome> {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Color', style: Theme.of(context).textTheme.titleLarge),
-          Text(
-            c.light.hex,
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+          ColorOrb(
+            color: rgb(c.light),
+            size: 126,
+            showLabel: false,
+            onTap: ready ? () => colorEditor(context, c) : null,
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Tu color', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 6),
+                Text(c.light.effect),
+                TextButton(
+                  onPressed: ready ? () => colorEditor(context, c) : null,
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Elegir color'),
+                      SizedBox(width: 5),
+                      Icon(Icons.north_east, size: 16),
+                    ],
+                  ),
+                ),
+                Wrap(
+                  spacing: 5,
+                  runSpacing: 5,
+                  children: [0xffb987d3, 0xffe5aa83, 0xff7aafd4, 0xff8fc3ac].map((
+                    value,
+                  ) {
+                    final color = Color(value);
+                    return Semantics(
+                      label:
+                          'Elegir color ${value.toRadixString(16).substring(2)}',
+                      button: true,
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: ready
+                            ? () => act(
+                                () => c.command('light', {
+                                  'state': 'ON',
+                                  'effect': 'Color fijo',
+                                  'color': {
+                                    'r': (color.r * 255).round(),
+                                    'g': (color.g * 255).round(),
+                                    'b': (color.b * 255).round(),
+                                  },
+                                }),
+                              )
+                            : null,
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: color,
+                            border: Border.all(
+                              width: 3,
+                              color: Theme.of(context).scaffoldBackgroundColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      const SizedBox(height: 22),
-      Center(
-        child: ColorOrb(
-          color: rgb(c.light),
-          onTap: ready ? () => colorEditor(context, c) : null,
-        ),
-      ),
-      const SizedBox(height: 26),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [0xffb987d3, 0xffe5aa83, 0xff7aafd4, 0xff8fc3ac, 0xffe5c9db]
-            .map((value) {
-              final color = Color(value);
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 5),
-                child: Semantics(
-                  label: 'Elegir color ${value.toRadixString(16).substring(2)}',
-                  button: true,
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: ready
-                        ? () => act(
-                            () => c.command('light', {
-                              'state': 'ON',
-                              'effect': 'Color fijo',
-                              'color': {
-                                'r': (color.r * 255).round(),
-                                'g': (color.g * 255).round(),
-                                'b': (color.b * 255).round(),
-                              },
-                            }),
-                          )
-                        : null,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: color,
-                        border: Border.all(
-                          width: 4,
-                          color: Theme.of(context).scaffoldBackgroundColor,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            })
-            .toList(),
-      ),
-      const SizedBox(height: 20),
+      const SizedBox(height: 24),
       ValueSlider(
-        label: 'Intensidad',
+        label: 'Brillo',
         value: c.light.brightness,
         max: 255,
         min: 0,
@@ -788,133 +735,7 @@ class _AuroraHomeState extends State<AuroraHome> {
     );
   }
 
-  Widget settings() {
-    final cfg = c.config!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        title('Ajustes'),
-        tile(
-          Icons.health_and_safety_outlined,
-          'Control y recuperación',
-          'Brillo máximo, transiciones y estado al reiniciar',
-          ready ? () => policyEditor(context, c) : null,
-        ),
-        tile(
-          Icons.info_outline,
-          'Diagnóstico',
-          'IP, Wi-Fi, MQTT y firmware',
-          ready ? () => diagnosticsEditor(context, c) : null,
-        ),
-        Card(
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(18),
-            leading: const Icon(Icons.memory, size: 36),
-            title: Text(c.selected!.name),
-            subtitle: Text(
-              '${cfg['chip'] ?? 'ESP32'} · ${cfg['count']} píxeles',
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        tile(
-          Icons.devices,
-          'Mis controladores',
-          'Añadir o cambiar de ESP32',
-          controllers,
-        ),
-        if (!c.selected!.demo)
-          tile(
-            Icons.edit_outlined,
-            'IP y credenciales',
-            c.selected!.address,
-            c.busy ? null : () => deviceEditor(context, c, c.selected),
-          ),
-        tile(
-          Icons.light_outlined,
-          'Tira y dispositivo',
-          '${cfg['count']} píxeles · GPIO ${cfg['gpio']} · ${cfg['grb'] == true ? 'GRB' : 'RGB'}',
-          ready ? () => stripEditor(context, c) : null,
-        ),
-        tile(
-          Icons.wifi,
-          'Conexión Wi-Fi',
-          cfg['ssid'] as String,
-          ready ? () => wifiEditor(context, c) : null,
-        ),
-        tile(
-          Icons.hub_outlined,
-          'Home Assistant / MQTT',
-          c.light.mqtt ? 'Conectado' : 'Desconectado',
-          ready ? () => mqttEditor(context, c) : null,
-        ),
-        const SizedBox(height: 20),
-        DropdownButtonFormField<String>(
-          key: ValueKey(c.appearance),
-          initialValue: c.appearance,
-          decoration: const InputDecoration(labelText: 'Apariencia'),
-          items: const [
-            DropdownMenuItem(value: 'system', child: Text('Automática')),
-            DropdownMenuItem(value: 'light', child: Text('Clara')),
-            DropdownMenuItem(value: 'dark', child: Text('Oscura')),
-          ],
-          onChanged: (value) => act(() => c.theme(value!)),
-        ),
-        const SizedBox(height: 16),
-        tile(
-          Icons.info_outline,
-          'Acerca de Aurora',
-          'Android · Flutter · 1.1.1',
-          () => showAboutDialog(
-            context: context,
-            applicationName: 'Aurora',
-            applicationVersion: '1.1.1',
-            children: [
-              const Text(
-                'App nativa para ESP32 con LEDWeb 1.2. La vista previa aproxima el efecto; la esfera representa el color seleccionado. Control local por Wi-Fi. Los horarios pertenecen a la ESP32.',
-              ),
-              if (c.selected!.demo)
-                const Padding(
-                  padding: EdgeInsets.only(top: 12),
-                  child: Text(
-                    'La demo no controla hardware ni conecta a MQTT. Sus horarios se evalúan mientras la app está activa.',
-                  ),
-                ),
-            ],
-          ),
-        ),
-        if (!c.selected!.demo)
-          TextButton.icon(
-            onPressed: c.busy
-                ? null
-                : () => act(() async {
-                    final remove = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('¿Quitar de la app?'),
-                        content: const Text(
-                          'Se eliminarán la dirección y las credenciales guardadas. La ESP32 conservará su configuración.',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancelar'),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            child: const Text('Quitar'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (remove == true) await c.remove(c.selected!);
-                  }),
-            icon: const Icon(Icons.delete_outline),
-            label: const Text('Quitar controlador de la app'),
-          ),
-      ],
-    );
-  }
+  Widget settings() => AppSettings(controller: c, onDevices: controllers);
 
   Widget tile(
     IconData icon,

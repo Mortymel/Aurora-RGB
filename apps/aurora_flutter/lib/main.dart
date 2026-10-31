@@ -44,17 +44,17 @@ class _AuroraAppState extends State<AuroraApp> with WidgetsBindingObserver {
       colorScheme: scheme,
       brightness: brightness,
       scaffoldBackgroundColor: dark
-          ? const Color(0xff13141e)
+          ? const Color(0xff101724)
           : const Color(0xfff3f2f8),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: dark ? const Color(0xff1e2030) : Colors.white,
+        color: dark ? const Color(0xff1a2434) : Colors.white,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: dark ? const Color(0xff252638) : Colors.white,
+        fillColor: dark ? const Color(0xff202b3d) : Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
@@ -65,7 +65,7 @@ class _AuroraAppState extends State<AuroraApp> with WidgetsBindingObserver {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: dark
-            ? const Color(0xff13141e)
+            ? const Color(0xff101724)
             : const Color(0xfff3f2f8),
         indicatorColor: dark
             ? const Color(0xff322b48)

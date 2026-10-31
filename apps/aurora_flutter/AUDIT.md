@@ -1,10 +1,10 @@
-# Auditoría de Aurora 1.1 / LEDWeb 1.3
+# Auditoría de Aurora 1.2 / LEDWeb 1.3
 
 Referencia: 30 de octubre de 2026. Revisión de código, compilación y pruebas automatizadas; no certificación de seguridad ni validación física.
 
 ## Evidencia
 
-- 16 pruebas Flutter aprobadas; la navegación también comprueba la carga parcial del catálogo y la aplicación del último efecto. Cobertura: API/autenticación local, timeout, redirecciones, validación, persistencia de prueba, aislamiento de controladores, recuperación, color y MQTT en widgets, deshacer, último gesto agrupado y horarios contradictorios.
+- Pruebas Flutter de API, estado e interfaz; la navegación también comprueba la carga parcial del catálogo y la aplicación del último efecto. Cobertura: API/autenticación local, timeout, redirecciones, validación, persistencia de prueba, aislamiento de controladores, recuperación, color y MQTT en widgets, deshacer, último gesto agrupado y horarios contradictorios.
 - flutter analyze sin incidencias; APK Android compilado, firma de prueba comprobada y SHA-256 contrastado tras descargar.
 - LEDWeb 1.3 compilado para ESP32-C6 y ESP32 clásico. Imágenes verificadas por cabeceras, particiones, familia, 4 MB y hashes.
 - Flasher público comprobado en Chrome: carga de ESP Web Tools, manifiesto 1.3, dos familias y ausencia de desbordamiento a 390/1200 px. Hashes de ambos binarios públicos contrastados.
@@ -28,3 +28,11 @@ HTTP Basic y MQTT 1883 no cifran tráfico. NVS no tiene cifrado adicional. Las c
 Se contrastaron las versiones con pubspec.yaml, el firmware y Releases. Se corrigieron enlaces del repositorio renombrado, la URL antigua de Pages (404), la versión Android de referencia, las instrucciones de descarga por Releases y la descripción desactualizada de la simulación. Se separaron uso, conexión, firmware, diseño y compilación. Las rutas antiguas de las guías se mantienen como redirecciones documentales.
 
 El informe de comprobaciones de enlaces está en [VALIDACION-DOCUMENTACION.md](https://github.com/Mortymel/Aurora-RGB/blob/main/docs/VALIDACION-DOCUMENTACION.md). Los enlaces correctos no demuestran una instalación física ni el rendimiento en todos los teléfonos.
+
+## Revisión de la interfaz 1.2.0
+
+Se sustituye la configuración global de la tira por sesiones independientes desde el engranaje de cada luz. Una ventana con navegación interna sustituye los formularios superpuestos. Ajustes permanece como pantalla general y se retiran el selector de pantalla inicial y la vista compacta. La rueda y la esfera se conservan.
+
+La nueva prueba con dos placas simuladas verifica que guardar MQTT en Dormitorio escribe únicamente en su API, conserva Escritorio como seleccionado y no modifica su broker. También comprueba el regreso dentro de una sola ventana y que Ajustes no contiene controles de la luz.
+
+LEDWeb 1.3.0 recompilado con ESP32 Arduino 3.3.12, NeoPixel 1.15.5, ArduinoJson 7.4.3 y PubSubClient 2.8: C6 1.212.902 bytes de programa y 53.132 de RAM estática; ESP32 clásico 1.127.477 y 58.656 bytes. Se comprueban cabeceras, familia, tabla de particiones y tamaño de las imágenes fusionadas. No ha sido necesario cambiar el protocolo ni la versión del firmware. [Validación física pendiente](TECHNICAL-TESTS.md).

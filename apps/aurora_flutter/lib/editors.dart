@@ -1,3 +1,4 @@
+import 'floating_page.dart';
 import 'color_wheel.dart';
 import 'package:flutter/material.dart';
 import 'controller.dart';
@@ -91,40 +92,31 @@ Future<void> diagnosticsEditor(BuildContext context, AuroraController c) async {
       'state',
     );
     if (!context.mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Diagnóstico'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final row in [
-                'IP: ${state['ip'] ?? device.address}',
-                'Firmware: ${state['version'] ?? '1.2 / demo'}',
-                'Wi-Fi: ${state['wifi'] == true ? 'conectado' : 'punto de acceso'}',
-                'Señal: ${state['rssi'] ?? '—'} dBm',
-                'MQTT: ${state['mqtt'] == true ? 'conectado' : 'desconectado'}',
-                'Reloj: ${state['clock_valid'] == true ? 'sincronizado' : 'sin hora válida'}',
-                'Encendido: ${state['uptime'] ?? '—'} s',
-                'Memoria libre: ${state['free_heap'] ?? '—'} bytes',
-              ])
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: SelectableText(row),
-                ),
-              const Text(
-                'Si falla la conexión, comprueba alimentación, misma red Wi-Fi, IP y credenciales. Si cambió la red, conecta a LEDWeb-… para recuperar acceso.',
-                style: TextStyle(fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
+    await floatingPage<void>(
+      context,
+      builder: (context) => Column(
+        children: [
+          const WindowHeading(title: 'Diagnóstico'),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                for (final row in [
+                  'IP: ${state['ip'] ?? device.address}',
+                  'Firmware: ${state['version'] ?? '1.3 / demo'}',
+                  'Wi-Fi: ${state['wifi'] == true ? 'conectado' : 'punto de acceso'}',
+                  'Señal: ${state['rssi'] ?? '—'} dBm',
+                  'MQTT: ${state['mqtt'] == true ? 'conectado' : 'desconectado'}',
+                  'Reloj: ${state['clock_valid'] == true ? 'sincronizado' : 'sin hora válida'}',
+                  'Encendido: ${state['uptime'] ?? '—'} s',
+                  'Memoria libre: ${state['free_heap'] ?? '—'} bytes',
+                ])
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: SelectableText(row),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -203,10 +195,8 @@ Future<void> editSheet(
   bool busy = false;
   String? error;
   ModalRoute<void>? route;
-  await showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
+  await floatingPage<void>(
+    context,
     builder: (sheetContext) => StatefulBuilder(
       builder: (context, set) {
         route = ModalRoute.of<void>(context);
@@ -221,24 +211,7 @@ Future<void> editSheet(
                     .clamp(180.0, MediaQuery.sizeOf(context).height),
             child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 12, 12, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: 'Cerrar',
-                        onPressed: busy ? null : () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                ),
+                WindowHeading(title: title, busy: busy),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
@@ -361,7 +334,7 @@ Future<void> deviceEditor(
             Padding(
               padding: EdgeInsets.only(bottom: 16),
               child: Text(
-                '1. Instala LEDWeb 1.2 en la ESP32.\n2. Conecta el teléfono a LEDWeb-… (clave inicial: tiraesp32).\n3. Añade 192.168.4.1 con admin / tiraesp32, salvo que cambiaste esas claves.\n4. En Ajustes → Wi-Fi, configura tu red de 2,4 GHz.\n5. Vuelve a tu Wi-Fi y edita la IP con la asignada por el router.',
+                '1. Instala LEDWeb 1.3 en la ESP32.\n2. Conecta el teléfono a LEDWeb-… (clave inicial: tiraesp32).\n3. Añade 192.168.4.1 con admin / tiraesp32, salvo que cambiaste esas claves.\n4. En Mis luces → engranaje → Wi-Fi, configura tu red de 2,4 GHz.\n5. Vuelve a tu Wi-Fi y edita la IP con la asignada por el router.',
               ),
             ),
           ],
@@ -753,7 +726,7 @@ Future<void> stripEditor(BuildContext context, AuroraController c) async {
   bool grb = cfg['grb'] == true;
   await editSheet(
     context,
-    title: 'Tira y dispositivo',
+    title: 'Configuración de la tira',
     content: (context, set) => Column(
       children: [
         entry('Nombre', name, (v) => name = v, required: true, maxLength: 32),
@@ -859,7 +832,7 @@ Future<void> mqttEditor(BuildContext context, AuroraController c) async {
     content: (context, set) => Column(
       children: [
         const ExpansionTile(
-          initiallyExpanded: true,
+          initiallyExpanded: false,
           tilePadding: EdgeInsets.zero,
           title: Text('¿Dónde consigo estos datos?'),
           children: [

@@ -62,6 +62,7 @@ void main() {
     });
     await tester.tap(find.byType(ColorOrb));
     await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.ensureVisible(find.text('Ajuste preciso · RGB / HEX'));
     await tester.pump(const Duration(milliseconds: 200));
     await tester.tap(find.text('Ajuste preciso · RGB / HEX'));
@@ -74,6 +75,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
     await tester.tap(find.text('Aplicar color'));
     await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(controller.light.hex, '#44AAFF');
     expect(controller.light.effect, 'Color fijo');
     await tester.tap(find.text('Horarios'));
@@ -83,11 +86,22 @@ void main() {
     await tester.tap(find.text('Ajustes'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byType(StripPreview), findsNothing);
+    expect(find.text('Home Assistant / MQTT'), findsNothing);
+    expect(find.byTooltip('Apagar luz'), findsNothing);
+    await tester.ensureVisible(find.text('Administrar mis luces'));
+    await tester.tap(find.text('Administrar mis luces'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.byTooltip('Configurar Escritorio'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 200));
     expect(find.text('Home Assistant / MQTT'), findsOneWidget);
     await tester.ensureVisible(find.text('Home Assistant / MQTT'));
     await tester.pump(const Duration(milliseconds: 200));
     await tester.tap(find.text('Home Assistant / MQTT'));
     await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('¿Dónde consigo estos datos?'), findsOneWidget);
     await tester.enterText(
       find.widgetWithText(TextFormField, 'IP o nombre del broker'),
@@ -97,7 +111,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
     await tester.tap(find.text('Guardar'));
     await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(controller.config?['mqtt_host'], '192.168.1.10');
+    expect(find.byType(Dialog), findsOneWidget);
+    await tester.tap(find.byTooltip('Cerrar'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('Efectos'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byType(StripPreview), findsNothing);

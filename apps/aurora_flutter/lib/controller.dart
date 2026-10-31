@@ -198,7 +198,7 @@ class AuroraController extends ChangeNotifier {
         conf['available_pins'] is! List ||
         conf['gpio'] is! int) {
       throw const ApiException(
-        'Firmware incompatible. Instala LEDWeb 1.2 en esta ESP32.',
+        'Firmware incompatible. Instala LEDWeb 1.3 en esta ESP32.',
       );
     }
     return (conf, Light.fromJson(await _api(device).request(device, 'state')));
@@ -254,6 +254,21 @@ class AuroraController extends ChangeNotifier {
     devices = devices.map((d) => d.id == device.id ? selected! : d).toList();
     await _persist();
     _notify();
+  }
+
+  /// A settings session edits one ESP32 without changing the active light.
+  Future<void> acceptDeviceSettings(Device device) async {
+    if (!device.demo) {
+      devices = devices.map((d) => d.id == device.id ? device : d).toList();
+    }
+    if (selected?.id == device.id) {
+      selected = device;
+      config = null;
+      _revision++;
+    }
+    await _persist();
+    _notify();
+    if (selected?.id == device.id) await refresh();
   }
 
   Future<void> refresh() async {

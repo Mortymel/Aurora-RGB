@@ -137,7 +137,15 @@ Color effectColor(Light light, double x, double t) {
 }
 
 class ColorOrb extends StatelessWidget {
-  const ColorOrb({super.key, required this.color, required this.onTap});
+  const ColorOrb({
+    super.key,
+    required this.color,
+    required this.onTap,
+    this.size = 190,
+    this.showLabel = true,
+  });
+  final double size;
+  final bool showLabel;
   final Color color;
   final VoidCallback? onTap;
   @override
@@ -148,8 +156,8 @@ class ColorOrb extends StatelessWidget {
       onTap: onTap,
       customBorder: const CircleBorder(),
       child: Container(
-        width: 190,
-        height: 190,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           boxShadow: [
@@ -179,18 +187,19 @@ class ColorOrb extends StatelessWidget {
                 ),
               ),
             ),
-            Align(
-              alignment: const Alignment(0, .65),
-              child: Text(
-                'Elegir color',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: color.computeLuminance() > .55
-                      ? const Color(0xff202233)
-                      : Colors.white,
+            if (showLabel)
+              Align(
+                alignment: const Alignment(0, .65),
+                child: Text(
+                  'Elegir color',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: color.computeLuminance() > .55
+                        ? const Color(0xff202233)
+                        : Colors.white,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),

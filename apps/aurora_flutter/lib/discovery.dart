@@ -1,3 +1,4 @@
+import 'floating_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:multicast_dns/multicast_dns.dart';
@@ -71,9 +72,8 @@ Future<void> discoverControllers(
 
   bool started = false;
   Device? selected;
-  await showModalBottomSheet<void>(
-    context: context,
-    useSafeArea: true,
+  await floatingPage<void>(
+    context,
     builder: (context) => StatefulBuilder(
       builder: (context, set) {
         if (!started) {
@@ -91,10 +91,7 @@ Future<void> discoverControllers(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Buscar ESP32',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
+                const WindowHeading(title: 'Añadir luz'),
                 const SizedBox(height: 16),
                 if (error == null) const LinearProgressIndicator(),
                 ...devices.values.map(
